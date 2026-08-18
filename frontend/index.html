@@ -180,6 +180,17 @@
     </div>
 
     <div class="flex items-center gap-3 self-start lg:self-auto flex-wrap">
+      <!-- Network Selector Switcher -->
+      <div class="glass rounded-xl px-3 py-2 border border-slate-700/60 flex items-center gap-2">
+        <span class="text-[11px] font-mono text-slate-400">Network:</span>
+        <select id="networkSelector" class="bg-transparent text-xs text-cyan-300 font-mono outline-none cursor-pointer">
+          <option value="bradbury" selected>Testnet Bradbury</option>
+          <option value="asimov">Testnet Asimov</option>
+          <option value="studionet">Studionet</option>
+          <option value="mainnet">GenLayer Mainnet</option>
+        </select>
+      </div>
+
       <div id="netStatus" class="glass rounded-xl px-4 py-2.5 flex items-center gap-3">
         <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
         <span class="font-mono text-xs text-slate-300">GenLayer Network</span>
@@ -203,8 +214,9 @@
           <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
             <span class="font-mono text-xs text-slate-400">Connected Account</span>
             <span class="flex items-center gap-1.5 font-mono text-[11px] text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/25">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> Bradbury Testnet
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> <span id="dropdownNetworkName">Bradbury Testnet</span>
             </span>
+
           </div>
           <div class="mb-3">
             <div id="dropdownFullAddress" class="font-mono text-xs text-cyan-300 bg-slate-900/60 p-2 rounded-lg break-all border border-slate-800">0x...</div>
@@ -332,7 +344,7 @@
       <div>
         <h4 class="font-display text-sm font-600 text-slate-200 mb-3">Network Status</h4>
         <div class="glass p-3 rounded-xl space-y-1.5 text-[11px]">
-          <div class="flex justify-between text-slate-400"><span>Chain ID:</span><span class="text-slate-200">61999</span></div>
+          <div class="flex justify-between text-slate-400"><span>Chain ID:</span><span id="footerChainId" class="text-slate-200">4221</span></div>
           <div class="flex justify-between text-slate-400"><span>Currency:</span><span class="text-amber-300">GEN</span></div>
           <div class="flex justify-between text-slate-400"><span>Consensus:</span><span class="text-emerald-300">Active</span></div>
         </div>
@@ -346,16 +358,54 @@
 
 <script type="module">
 import { createClient } from "genlayer-js";
-import { testnetBradbury } from "genlayer-js/chains";
+import { testnetBradbury, testnetAsimov, studionet, mainnet } from "genlayer-js/chains";
+
+const CHAINS = {
+  bradbury: testnetBradbury,
+  asimov: testnetAsimov,
+  studionet: studionet,
+  mainnet: mainnet
+};
+
+let currentNetworkKey = "bradbury";
 
 const FIXED_REGISTRY_ADDRESS = "0xC91ae987d988956f33A9d2De111dA60888a004b7";
 let cachedCourtAddress = "";
 const CACHE_PREFIX = "agentcourt_v2_";
 
+async function switchNetwork(networkKey) {
+  currentNetworkKey = networkKey;
+  cachedCourtAddress = "";
+  const chainObj = CHAINS[currentNetworkKey];
+  
+  const netNames = {
+    bradbury: "Bradbury Testnet",
+    asimov: "Asimov Testnet",
+    studionet: "Studionet",
+    mainnet: "GenLayer Mainnet"
+  };
+  
+  const dropdownNet = document.getElementById("dropdownNetworkName");
+  if(dropdownNet) dropdownNet.textContent = netNames[networkKey] || networkKey;
+  
+  const chainIdEl = document.getElementById("footerChainId");
+  if(chainIdEl && chainObj && chainObj.id) {
+    chainIdEl.textContent = chainObj.id;
+  }
+
+  showToast(`Switched network to ${netNames[networkKey] || networkKey}`);
+  
+  await getContractAddress();
+  if (state.buyerAddress) {
+    await fetchUserCases(state.buyerAddress);
+  }
+  renderAll();
+}
+
 async function getContractAddress() {
   if (cachedCourtAddress) return cachedCourtAddress;
   try {
-    const client = createClient({ chain: testnetBradbury });
+    const client = createClient({ chain: CHAINS[currentNetworkKey] });
     const activeAddress = await client.readContract({
       address: FIXED_REGISTRY_ADDRESS,
       functionName: "get_court_address",
@@ -377,7 +427,7 @@ async function getContractAddress() {
 function getClient() {
   const walletAddr = state.buyerAddress ? state.buyerAddress.trim() : undefined;
   return createClient({
-    chain: testnetBradbury,
+    chain: CHAINS[currentNetworkKey],
     account: walletAddr ? walletAddr : undefined,
   });
 }
@@ -445,7 +495,7 @@ async function syncVerdictData(caseId) {
   let meta = {};
   try { meta = JSON.parse(metaStr); } catch(e){}
 
-  const cacheKey = CACHE_PREFIX + caseId;
+  const cacheKey = CACHE_PREFIX + currentNetworkKey + "_" + caseId;
   const cachedStr = localStorage.getItem(cacheKey);
   let localCache = null;
   if(cachedStr) { try { localCache = JSON.parse(cachedStr); } catch(e){} }
@@ -916,6 +966,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  const netSelector = document.getElementById("networkSelector");
+  if (netSelector) {
+    netSelector.addEventListener("change", (e) => {
+      switchNetwork(e.target.value);
+    });
+  }
+
   await getContractAddress();
   renderAll();
 });
@@ -974,7 +1031,7 @@ async function createAndFundCase(){
     showLoadingOverlay("Creating & Funding Escrow", `Registering case "${escapeHtml(state.projectTitle)}" & locking ${fundAmountRaw} GEN...`);
     const client = getClient();
 
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
 
     const txHash = await client.writeContract({
       address: contractAddress,
@@ -1037,7 +1094,7 @@ async function submitDelivery(){
     showLoadingOverlay("Submitting Delivery", "Generating Evidence Snapshot & Storing on-chain...");
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
 
     const txHash = await client.writeContract({
       address: contractAddress,
@@ -1071,7 +1128,7 @@ async function requestAdjudication(){
   try {
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
     
     const txHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "request_adjudication", args: [state.caseId] }),
@@ -1155,7 +1212,7 @@ async function raiseAppeal() {
     showLoadingOverlay("Recording Appeal", "Submitting structured appeal justification on-chain...");
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
 
     const appealTxHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "raise_appeal", args: [state.caseId, structuredAppeal] }),
@@ -1205,7 +1262,7 @@ async function finalizeSettlement(percent){
     showLoadingOverlay("Finalizing Settlement", `Registering payout (${percent}%) on-chain...`);
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
     
     const p = Math.max(0, Math.min(100, Number(percent)));
 
@@ -1239,7 +1296,7 @@ async function forceFinalize() {
     showLoadingOverlay("Force Finalizing", "Resolving abandoned case based on grace period...");
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
 
     const txHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "force_finalize", args: [state.caseId] }),
@@ -1269,7 +1326,7 @@ async function settleCase(){
     showLoadingOverlay("Releasing Escrow", "Transferring tokens on-chain...");
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
 
     const txHash = await client.writeContract({
       address: contractAddress,
@@ -1298,7 +1355,7 @@ async function claimRefund(){
     showLoadingOverlay("Claiming Refund", "Requesting deadline-based refund on-chain...");
     const client = getClient();
     
-    await client.connect("testnetBradbury");
+    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
 
     const txHash = await client.writeContract({
       address: contractAddress,
