@@ -395,6 +395,13 @@ async function switchNetwork(networkKey) {
 
   showToast(`Switched network to ${netNames[networkKey] || networkKey}`);
   
+  try {
+    const client = getClient();
+    await client.connect(chainObj);
+  } catch (e) {
+    console.warn("Wallet network prompt skipped or failed:", e);
+  }
+
   await getContractAddress();
   if (state.buyerAddress) {
     await fetchUserCases(state.buyerAddress);
@@ -429,6 +436,7 @@ function getClient() {
   return createClient({
     chain: CHAINS[currentNetworkKey],
     account: walletAddr ? walletAddr : undefined,
+    provider: window.ethereum
   });
 }
 
@@ -1031,7 +1039,7 @@ async function createAndFundCase(){
     showLoadingOverlay("Creating & Funding Escrow", `Registering case "${escapeHtml(state.projectTitle)}" & locking ${fundAmountRaw} GEN...`);
     const client = getClient();
 
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
 
     const txHash = await client.writeContract({
       address: contractAddress,
@@ -1094,7 +1102,7 @@ async function submitDelivery(){
     showLoadingOverlay("Submitting Delivery", "Generating Evidence Snapshot & Storing on-chain...");
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
 
     const txHash = await client.writeContract({
       address: contractAddress,
@@ -1128,7 +1136,7 @@ async function requestAdjudication(){
   try {
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
     
     const txHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "request_adjudication", args: [state.caseId] }),
@@ -1212,7 +1220,7 @@ async function raiseAppeal() {
     showLoadingOverlay("Recording Appeal", "Submitting structured appeal justification on-chain...");
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
 
     const appealTxHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "raise_appeal", args: [state.caseId, structuredAppeal] }),
@@ -1262,7 +1270,7 @@ async function finalizeSettlement(percent){
     showLoadingOverlay("Finalizing Settlement", `Registering payout (${percent}%) on-chain...`);
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
     
     const p = Math.max(0, Math.min(100, Number(percent)));
 
@@ -1296,7 +1304,7 @@ async function forceFinalize() {
     showLoadingOverlay("Force Finalizing", "Resolving abandoned case based on grace period...");
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
 
     const txHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "force_finalize", args: [state.caseId] }),
@@ -1326,7 +1334,7 @@ async function settleCase(){
     showLoadingOverlay("Releasing Escrow", "Transferring tokens on-chain...");
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
 
     const txHash = await client.writeContract({
       address: contractAddress,
@@ -1355,7 +1363,7 @@ async function claimRefund(){
     showLoadingOverlay("Claiming Refund", "Requesting deadline-based refund on-chain...");
     const client = getClient();
     
-    await client.connect(currentNetworkKey === 'bradbury' ? 'testnetBradbury' : currentNetworkKey === 'asimov' ? 'testnetAsimov' : currentNetworkKey);
+    await client.connect(CHAINS[currentNetworkKey]);
 
     const txHash = await client.writeContract({
       address: contractAddress,
