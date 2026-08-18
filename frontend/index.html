@@ -179,13 +179,12 @@
       </div>
     </div>
 
-    <!-- هدر ستون ابزارها شامل منوی شبکه، وضعیت، تم و کیف پول -->
-    <div class="flex items-center gap-2.5 self-start lg:self-auto flex-wrap">
+    <!-- بخش ابزارهای هدر شامل منوی شبکه با استایل کاملاً مشخص و تضمین‌شده -->
+    <div class="flex items-center gap-3 self-start lg:self-auto flex-wrap">
       
-      <!-- منوی کشویی انتخاب شبکه (کاملاً مشخص و واضح) -->
-      <div class="glass rounded-xl px-3 py-2 border border-cyan-500/40 bg-cyan-950/20 flex items-center gap-2">
-        <span class="text-[11px] font-mono text-cyan-300 font-bold">🌐 Network:</span>
-        <select id="networkSelector" class="bg-slate-900 text-xs text-cyan-200 font-mono outline-none cursor-pointer px-2 py-1 rounded border border-slate-700">
+      <div class="glass rounded-xl px-3.5 py-2.5 border border-cyan-500/50 bg-cyan-950/30 flex items-center gap-2.5 shadow-lg">
+        <span class="text-xs font-mono text-cyan-300 font-bold whitespace-nowrap">Network:</span>
+        <select id="networkSelector" class="bg-slate-900 text-xs text-cyan-200 font-mono outline-none cursor-pointer px-2 py-1 rounded border border-cyan-500/40">
           <option value="bradbury" selected>Testnet Bradbury</option>
           <option value="asimov">Testnet Asimov</option>
           <option value="studionet">Studionet</option>
@@ -193,20 +192,21 @@
         </select>
       </div>
 
-      <div id="netStatus" class="glass rounded-xl px-3 py-2 flex items-center gap-2">
+      <div id="netStatus" class="glass rounded-xl px-4 py-2.5 flex items-center gap-3">
         <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-        <span class="font-mono text-[11px] text-slate-300">GenLayer</span>
-        <span class="w-px h-3.5 bg-slate-600"></span>
-        <span class="font-mono text-[11px] text-amber-300">≥ 66%</span>
+        <span class="font-mono text-xs text-slate-300">GenLayer Network</span>
+        <span class="w-px h-4 bg-slate-600"></span>
+        <span class="font-mono text-xs text-amber-300">≥ 66%</span>
       </div>
 
-      <button id="btnThemeToggle" class="btn glass px-3 py-2 rounded-xl text-slate-300 text-sm whitespace-nowrap flex items-center gap-1.5 border border-slate-700/60 hover:text-cyan-300 transition-colors">
+      <button id="btnThemeToggle" class="btn glass px-3.5 py-2.5 rounded-xl text-slate-300 text-sm whitespace-nowrap flex items-center gap-2 border border-slate-700/60 hover:text-cyan-300 transition-colors">
         <span id="themeIcon">🌙</span>
+        <span class="font-mono text-xs" id="themeText">Dark</span>
       </button>
 
       <div class="relative">
         <div id="walletProfileContainer">
-          <button id="btnConnectWallet" class="btn glow-cyan px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-sm whitespace-nowrap flex items-center gap-2">
+          <button id="btnConnectWallet" class="btn glow-cyan px-4 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-sm whitespace-nowrap flex items-center gap-2">
             <span>Connect Wallet</span>
           </button>
         </div>
