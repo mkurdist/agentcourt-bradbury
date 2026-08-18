@@ -348,7 +348,7 @@
 import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 
-const FIXED_REGISTRY_ADDRESS = "0x42Cf94434cBb800654cf9D4eb1048B48acfA0Ff8";
+const FIXED_REGISTRY_ADDRESS = "0xC91ae987d988956f33A9d2De111dA60888a004b7";
 let cachedCourtAddress = "";
 const CACHE_PREFIX = "agentcourt_v2_";
 
@@ -428,18 +428,15 @@ async function rpcCallWithRetry(fn, { retries = 4, baseDelay = 1500, label = "RP
   throw lastErr;
 }
 
-// Single source of truth for pulling case state + verdict + audit report off-chain with V2 CACHE.
 async function syncVerdictData(caseId) {
   const contractAddress = await getContractAddress();
   if (!contractAddress) return false;
   const client = getClient();
 
-  // V2 Fix: Reset consensus logic before reading to prevent UI ghosting
   state.consensus = null;
   state.auditReport = null;
   state.auditScoreOnChain = 0;
 
-  // V2 Caching Logic: Fetch metadata first (lightweight RPC)
   const metaStr = await rpcCallWithRetry(
     () => client.readContract({ address: contractAddress, functionName: "get_case_meta", args: [caseId] }),
     { label: "get_case_meta" }
@@ -453,7 +450,6 @@ async function syncVerdictData(caseId) {
   let localCache = null;
   if(cachedStr) { try { localCache = JSON.parse(cachedStr); } catch(e){} }
 
-  // Compare updated_at. If unchanged, skip heavy RPC calls
   if(localCache && meta.updated_at && localCache.updated_at === meta.updated_at) {
     state.caseState = localCache.caseState;
     state.caseCreated = localCache.caseCreated;
@@ -488,7 +484,6 @@ async function syncVerdictData(caseId) {
 
   const verdictStates = ["ACCEPTED", "DISPUTED", "FINALIZED", "SETTLED", "APPEALED"];
   if (!verdictStates.includes(formattedState)) {
-    // Cache active state
     localStorage.setItem(cacheKey, JSON.stringify({
       updated_at: meta.updated_at, caseState: state.caseState, caseCreated: state.caseCreated,
       escrowBalance: state.escrowBalance, projectTitle: state.projectTitle
@@ -497,7 +492,6 @@ async function syncVerdictData(caseId) {
     return true;
   }
 
-  // V2 Fix: Fetch get_audit_score alongside get_audit_report
   const [verdictResult, auditRes, scoreRes] = await Promise.all([
     rpcCallWithRetry(() => client.readContract({ address: contractAddress, functionName: "get_adjudication_result", args: [caseId] }), { label: "get_adjudication_result" }).catch(() => ""),
     rpcCallWithRetry(() => client.readContract({ address: contractAddress, functionName: "get_audit_report", args: [caseId] }), { label: "get_audit_report" }).catch(() => "{}"),
@@ -530,7 +524,6 @@ async function syncVerdictData(caseId) {
     console.warn("Failed to parse audit report JSON for case", caseId, e, auditRes);
   }
 
-  // Update Cache
   localStorage.setItem(cacheKey, JSON.stringify({
     updated_at: meta.updated_at, caseState: state.caseState, caseCreated: state.caseCreated,
     escrowBalance: state.escrowBalance, consensus: state.consensus, auditReport: state.auditReport,
@@ -961,7 +954,6 @@ async function createAndFundCase(){
 
   if(activeReqs.length === 0){ showToast("Select at least one requirement or add a custom rule", "error"); return; }
 
-  // V2 Fix: Dynamic Expected Claims Generation
   const dynamicClaims = activeReqs.map(r => r.description);
 
   const totalWeight = activeReqs.reduce((sum, r) => sum + r.weight, 0);
@@ -973,7 +965,7 @@ async function createAndFundCase(){
     ...DEFAULT_AGREEMENT,
     case_id: state.caseId,
     project_title: state.projectTitle || "Untitled Project",
-    expected_claims: dynamicClaims, // Replaces fixed claims
+    expected_claims: dynamicClaims,
     requirements: activeReqs
   };
   state.agreement = finalAgreement;
@@ -982,7 +974,6 @@ async function createAndFundCase(){
     showLoadingOverlay("Creating & Funding Escrow", `Registering case "${escapeHtml(state.projectTitle)}" & locking ${fundAmountRaw} GEN...`);
     const client = getClient();
 
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
 
     const txHash = await client.writeContract({
@@ -1046,7 +1037,6 @@ async function submitDelivery(){
     showLoadingOverlay("Submitting Delivery", "Generating Evidence Snapshot & Storing on-chain...");
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
 
     const txHash = await client.writeContract({
@@ -1069,9 +1059,6 @@ async function submitDelivery(){
   }
 }
 
-// ==========================================
-// DYNAMIC ADJUDICATION FUNCTION (V2 Secure Flow)
-// ==========================================
 async function requestAdjudication(){
   const contractAddress = await getContractAddress();
   if(!contractAddress || state.caseState !== "SUBMITTED" || state.isAdjudicating) return;
@@ -1084,10 +1071,8 @@ async function requestAdjudication(){
   try {
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
     
-    // V2 Fix: `web_url` argument completely removed. Contract pulls recorded evidence securely.
     const txHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "request_adjudication", args: [state.caseId] }),
       { label: "request_adjudication tx" }
@@ -1108,7 +1093,7 @@ async function requestAdjudication(){
 
     let isFinalized = false;
     let attempts = 0;
-    const maxAttempts = 30; // 30 attempts * 10s = 5 minutes total polling time
+    const maxAttempts = 30;
 
     if (receiptOk) {
       isFinalized = await syncVerdictData(state.caseId)
@@ -1118,7 +1103,7 @@ async function requestAdjudication(){
 
     while (!isFinalized && attempts < maxAttempts) {
       attempts++;
-      await new Promise(r => setTimeout(r, 10000)); // 10 second delay between checks to protect RPC limits
+      await new Promise(r => setTimeout(r, 10000));
 
       showLoadingOverlay("AI Consensus in Progress", `Validating code and collecting node votes (Attempt ${attempts}/${maxAttempts}, checking every 10s)...`);
 
@@ -1160,7 +1145,6 @@ async function raiseAppeal() {
     return;
   }
 
-  // V2 Structured Appeal
   const structuredAppeal = JSON.stringify({
     reason: state.appealJustification,
     target: state.appealTarget,
@@ -1171,7 +1155,6 @@ async function raiseAppeal() {
     showLoadingOverlay("Recording Appeal", "Submitting structured appeal justification on-chain...");
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
 
     const appealTxHash = await rpcCallWithRetry(
@@ -1187,7 +1170,6 @@ async function raiseAppeal() {
     renderAll();
     showLoadingOverlay("Running Re-Audit", "Submitting decentralized re-adjudication...");
 
-    // V2 Fix: request_adjudication takes only case_id
     const txHash = await rpcCallWithRetry(
       () => client.writeContract({ address: contractAddress, functionName: "request_adjudication", args: [state.caseId] }),
       { label: "request_adjudication (appeal) tx" }
@@ -1223,7 +1205,6 @@ async function finalizeSettlement(percent){
     showLoadingOverlay("Finalizing Settlement", `Registering payout (${percent}%) on-chain...`);
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
     
     const p = Math.max(0, Math.min(100, Number(percent)));
@@ -1250,7 +1231,6 @@ async function finalizeSettlement(percent){
   }
 }
 
-// V2 Feature: Force Finalize
 async function forceFinalize() {
   const contractAddress = await getContractAddress();
   if(!contractAddress) return;
@@ -1259,7 +1239,6 @@ async function forceFinalize() {
     showLoadingOverlay("Force Finalizing", "Resolving abandoned case based on grace period...");
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
 
     const txHash = await rpcCallWithRetry(
@@ -1290,7 +1269,6 @@ async function settleCase(){
     showLoadingOverlay("Releasing Escrow", "Transferring tokens on-chain...");
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
 
     const txHash = await client.writeContract({
@@ -1320,7 +1298,6 @@ async function claimRefund(){
     showLoadingOverlay("Claiming Refund", "Requesting deadline-based refund on-chain...");
     const client = getClient();
     
-    // Ensure wallet connects to Bradbury before writing
     await client.connect("testnetBradbury");
 
     const txHash = await client.writeContract({
@@ -1693,7 +1670,6 @@ function renderCourtTab(){
 
   const totalEscrow = Number(state.escrowBalance) || 500;
   
-  // V2 Fix: Use actual on-chain score for limits, fallback to UI calculation if un-synced
   const auditScore = state.auditScoreOnChain || (isAccepted ? 100 : 0);
   const defaultProviderPercent = isDisputed ? 0 : auditScore;
 
@@ -1959,7 +1935,6 @@ function bindTabEvents(){
   if(state.activeTab === "court"){
     byId("btnAdjudicate")?.addEventListener("click", requestAdjudication);
     
-    // V2 Appeal Binding
     byId("inpAppealTarget")?.addEventListener("input", e => { state.appealTarget = e.target.value; });
     byId("inpAppealUrl")?.addEventListener("input", e => { state.appealUrl = e.target.value; });
     byId("inpAppealJustification")?.addEventListener("input", e => { state.appealJustification = e.target.value; });
@@ -1982,7 +1957,6 @@ function bindTabEvents(){
       finalizeSettlement(p);
     });
     
-    // V2 Force Finalize Binding
     byId("btnForceFinalize")?.addEventListener("click", forceFinalize);
     
     byId("btnSettle")?.addEventListener("click", settleCase);
