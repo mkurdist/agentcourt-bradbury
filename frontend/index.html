@@ -1,1 +1,2008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentCourt Protocol V2 — Dispute Resolution & Settlement</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><circle cx='24' cy='24' r='22' fill='%2322d3ee' opacity='0.2'/><path d='M24 6 L24 42 M12 14 L36 14 M8 20 L16 20 M32 20 L40 20' stroke='%2322d3ee' stroke-width='2' stroke-linecap='round'/></svg>">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="importmap">
+  {
+    "imports": {
+      "genlayer-js": "https://esm.sh/genlayer-js@1.1.8",
+      "genlayer-js/chains": "https://esm.sh/genlayer-js@1.1.8/chains"
+    }
+  }
+</script>
+<style>
+  :root{
+    --bg-deep:#070b14;
+    --bg-base:#0f172a;
+    --panel:rgba(30,41,59,0.55);
+    --panel-border:rgba(148,163,184,0.14);
+    --cyan:#22d3ee;
+    --violet:#8b5cf6;
+    --amber:#fbbf24;
+    --green:#34d399;
+    --red:#f87171;
+    --ink:#f1f5f9;
+    --muted:#94a3b8;
+  }
+  body.light-mode{
+    --bg-deep:#f1f5f9;
+    --bg-base:#e2e8f0;
+    --panel:rgba(255,255,255,0.9);
+    --panel-border:rgba(148,163,184,0.3);
+    --ink:#0f172a;
+    --muted:#334155;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 12% -10%, rgba(139,92,246,0.16), transparent 60%),
+      radial-gradient(ellipse 900px 600px at 100% 0%, rgba(34,211,238,0.13), transparent 55%),
+      radial-gradient(ellipse 700px 500px at 50% 110%, rgba(251,191,36,0.07), transparent 60%),
+      var(--bg-deep);
+    color:var(--ink);
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+    min-height:100vh;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  body.light-mode{
+    background:
+      radial-gradient(ellipse 900px 500px at 12% -10%, rgba(139,92,246,0.08), transparent 60%),
+      radial-gradient(ellipse 900px 600px at 100% 0%, rgba(34,211,238,0.08), transparent 55%),
+      radial-gradient(ellipse 700px 500px at 50% 110%, rgba(251,191,36,0.04), transparent 60%),
+      var(--bg-deep);
+  }
+  body.light-mode .text-slate-400 { color: #334155 !important; }
+  body.light-mode .text-slate-500 { color: #475569 !important; }
+  body.light-mode .text-slate-300 { color: #1e293b !important; }
+  body.light-mode .bg-slate-900\/40 { background-color: rgba(241,245,249,0.8) !important; }
+  body.light-mode .bg-slate-800 { background-color: #cbd5e1 !important; color: #1e293b !important; }
+  body.light-mode .border-slate-700 { border-color: #cbd5e1 !important; }
 
+  .font-display{font-family:'Space Grotesk',ui-sans-serif,sans-serif;}
+  .font-mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .glass{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+  }
+  .glow-cyan{box-shadow:0 0 0 1px rgba(34,211,238,0.25), 0 0 40px -8px rgba(34,211,238,0.35);}
+  .glow-violet{box-shadow:0 0 0 1px rgba(139,92,246,0.28), 0 0 40px -8px rgba(139,92,246,0.4);}
+  .glow-amber{box-shadow:0 0 0 1px rgba(251,191,36,0.28), 0 0 40px -8px rgba(251,191,36,0.35);}
+  .glow-green{box-shadow:0 0 0 1px rgba(52,211,153,0.28), 0 0 30px -8px rgba(52,211,153,0.4);}
+  .glow-red{box-shadow:0 0 0 1px rgba(248,113,113,0.28), 0 0 30px -8px rgba(248,113,113,0.4);}
+  .text-gradient{
+    background:linear-gradient(90deg,#22d3ee,#8b5cf6 60%,#fbbf24);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600; letter-spacing:.01em;
+    transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+    cursor:pointer;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.08);}
+  .btn:active:not(:disabled){transform:translateY(0px) scale(.98);}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  .tab-btn{transition:all .2s ease;}
+  input,textarea,select{
+    background:rgba(7,11,20,0.55);
+    border:1px solid rgba(148,163,184,0.18);
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+  }
+  body.light-mode input, body.light-mode textarea, body.light-mode select{
+    background:rgba(255,255,255,0.95);
+    border:1px solid rgba(148,163,184,0.4);
+    color:#0f172a;
+  }
+  input:focus,textarea:focus,select:focus{
+    outline:none; border-color:rgba(34,211,238,0.55);
+    box-shadow:0 0 0 3px rgba(34,211,238,0.12);
+  }
+  input::placeholder,textarea::placeholder{color:#64748b;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#334155;border-radius:8px;}
+
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.85);}}
+  .pulse-dot{animation:pulseDot 1.4s ease-in-out infinite;}
+
+  @keyframes floaty{0%,100%{transform:translateY(0px);}50%{transform:translateY(-6px);}}
+  .float{animation:floaty 5s ease-in-out infinite;}
+
+  @keyframes shimmer{0%{background-position:-300px 0;}100%{background-position:300px 0;}}
+  .shimmer{
+    background:linear-gradient(90deg, rgba(148,163,184,.06) 25%, rgba(148,163,184,.16) 37%, rgba(148,163,184,.06) 63%);
+    background-size:400px 100%;
+    animation:shimmer 1.6s linear infinite;
+  }
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .fade-up{animation:fadeUp .35s ease both;}
+
+  @keyframes nodeGlow{0%{filter:drop-shadow(0 0 0px currentColor);}50%{filter:drop-shadow(0 0 8px currentColor);}100%{filter:drop-shadow(0 0 0px currentColor);}}
+  .node-active{animation:nodeGlow 1.1s ease-in-out infinite;}
+
+  .scale-beam{ transform-origin:200px 92px; transition:transform 1.1s cubic-bezier(.34,1.56,.64,1); }
+  .scale-pillar-glow{filter:drop-shadow(0 0 10px rgba(139,92,246,0.45));}
+
+  .state-node{transition:all .3s ease;}
+  .state-line{transition:all .5s ease;}
+
+  .checkbox-req{accent-color:#22d3ee;}
+</style>
+</head>
+<body class="antialiased">
+
+<div id="toastContainer" class="fixed bottom-6 right-6 z-50 space-y-3 pointer-events-none"></div>
+
+<div id="globalOverlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+  <div class="glass p-6 rounded-2xl border border-cyan-500/30 glow-cyan flex flex-col items-center space-y-4 max-w-sm text-center">
+    <div class="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+    <div class="font-display font-600 text-sm text-cyan-200" id="overlayTitle">Processing On-Chain Action</div>
+    <div class="font-mono text-xs text-slate-400 leading-relaxed" id="overlayDesc">Waiting for GenLayer network validators consensus & transaction finality...</div>
+  </div>
+</div>
+
+<div class="max-w-[1400px] mx-auto px-4 md:px-8 py-6">
+
+  <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-4">
+      <div class="relative w-12 h-12 shrink-0 float">
+        <svg viewBox="0 0 48 48" class="w-12 h-12 scale-pillar-glow">
+          <circle cx="24" cy="24" r="22" fill="url(#logoGrad)" opacity="0.15"/>
+          <path d="M24 6 L24 42 M12 14 L36 14 M8 20 L16 20 M32 20 L40 20" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M8 20 L12 30 L4 30 Z" fill="none" stroke="#8b5cf6" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M40 20 L44 30 L36 30 Z" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-linejoin="round"/>
+          <rect x="16" y="42" width="16" height="3" rx="1" fill="#22d3ee"/>
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <h1 class="font-display text-2xl md:text-[28px] font-700 leading-none">
+          <span class="text-gradient">AgentCourt</span> <span class="text-slate-100">Protocol V2</span>
+        </h1>
+        <p class="text-[13px] text-slate-400 mt-1">Trustless dispute resolution &amp; settlement for autonomous agents — running on GenLayer network</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 self-start lg:self-auto flex-wrap">
+      <div id="netStatus" class="glass rounded-xl px-4 py-2.5 flex items-center gap-3">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+        <span class="font-mono text-xs text-slate-300">GenLayer Network</span>
+        <span class="w-px h-4 bg-slate-600"></span>
+        <span class="font-mono text-xs text-amber-300">≥ 66%</span>
+      </div>
+
+      <button id="btnThemeToggle" class="btn glass px-3.5 py-2.5 rounded-xl text-slate-300 text-sm whitespace-nowrap flex items-center gap-2 border border-slate-700/60 hover:text-cyan-300 transition-colors">
+        <span id="themeIcon">🌙</span>
+        <span class="font-mono text-xs" id="themeText">Dark</span>
+      </button>
+
+      <div class="relative">
+        <div id="walletProfileContainer">
+          <button id="btnConnectWallet" class="btn glow-cyan px-4 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-sm whitespace-nowrap flex items-center gap-2">
+            <span>Connect Wallet</span>
+          </button>
+        </div>
+
+        <div id="accountDropdown" class="hidden absolute right-0 mt-2 w-72 glass rounded-2xl p-4 shadow-2xl border border-slate-700/80 z-50 fade-up">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
+            <span class="font-mono text-xs text-slate-400">Connected Account</span>
+            <span class="flex items-center gap-1.5 font-mono text-[11px] text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/25">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> Bradbury Testnet
+            </span>
+          </div>
+          <div class="mb-3">
+            <div id="dropdownFullAddress" class="font-mono text-xs text-cyan-300 bg-slate-900/60 p-2 rounded-lg break-all border border-slate-800">0x...</div>
+          </div>
+          <div class="space-y-2">
+            <button id="btnCopyAddress" class="w-full btn py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 text-xs flex items-center justify-center gap-2 border border-slate-700">
+              📋 Copy Full Address
+            </button>
+            <button id="btnDisconnectWallet" class="w-full btn py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs flex items-center justify-center gap-2 border border-red-500/30">
+              🔌 Disconnect Wallet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="glass rounded-2xl px-6 py-4 mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <span class="text-xs text-slate-400 block mb-1">Smart Contract Address (Registry Auto-Synced)</span>
+      <span id="displayContractAddress" class="font-mono text-xs text-cyan-300">Syncing active contract from registry...</span>
+    </div>
+    <span class="font-mono text-[11px] px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> Registry Auto-Synced
+    </span>
+  </div>
+
+  <div id="dynamicCaseSelectorContainer"></div>
+
+  <div class="glass rounded-2xl px-4 md:px-6 py-4 mb-6 overflow-x-auto">
+    <div id="stateStrip" class="flex items-center gap-1 min-w-[880px] md:min-w-0"></div>
+  </div>
+
+  <div class="glass rounded-2xl px-6 py-4 mb-6 space-y-3">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <span class="font-display text-xs font-600 text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span> Protocol Workflow Stepper
+      </span>
+      <span id="stepperHintBadge" class="font-mono text-xs px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-200 border border-cyan-400/30">Step 1: Configure &amp; Fund Case</span>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+      <div id="stepCard1" class="p-3 rounded-xl border border-cyan-400/50 bg-cyan-500/10 text-cyan-200 flex items-center gap-2 transition-all">
+        <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-[10px]">1</span>
+        <span>Create & Fund</span>
+      </div>
+      <div id="stepCard2" class="p-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-400 flex items-center gap-2 transition-all">
+        <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[10px]">2</span>
+        <span>Active Escrow</span>
+      </div>
+      <div id="stepCard3" class="p-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-400 flex items-center gap-2 transition-all">
+        <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[10px]">3</span>
+        <span>Submit Evidence</span>
+      </div>
+      <div id="stepCard4" class="p-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-400 flex items-center gap-2 transition-all">
+        <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[10px]">4</span>
+        <span>AI Adjudication</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
+
+    <div class="space-y-6">
+      <div class="glass rounded-2xl p-1.5 flex gap-1.5 flex-wrap">
+        <button data-tab="buyer" class="tabBtnEl tab-btn flex-1 min-w-[90px] py-2.5 rounded-xl font-display text-sm font-600">🏛️ Buyer</button>
+        <button data-tab="provider" class="tabBtnEl tab-btn flex-1 min-w-[90px] py-2.5 rounded-xl font-display text-sm font-600">⚙️ Provider</button>
+        <button data-tab="court" class="tabBtnEl tab-btn flex-1 min-w-[110px] py-2.5 rounded-xl font-display text-sm font-600">⚖️ Court &amp; Appeal</button>
+        <button data-tab="history" class="tabBtnEl tab-btn flex-1 min-w-[90px] py-2.5 rounded-xl font-display text-sm font-600">📜 History</button>
+      </div>
+
+      <div id="tabContent"></div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="glass rounded-2xl p-5 glow-violet">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-display text-sm font-600 text-slate-200">Live Verdict Scale</h3>
+          <span id="scoreBadge" class="font-mono text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">— %</span>
+        </div>
+        <div id="scaleSvgHolder" class="flex justify-center"></div>
+        <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-1 px-2">
+          <span>DISPUTED</span><span>ACCEPTED</span>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <h3 class="font-display text-sm font-600 text-slate-200 mb-3">Case Summary</h3>
+        <div id="caseSummary" class="space-y-2 text-[13px] font-mono"></div>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <h3 class="font-display text-sm font-600 text-slate-200 mb-3 flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Chain Activity
+        </h3>
+        <div id="activityLog" class="space-y-2 max-h-[340px] overflow-y-auto pr-1 text-[12px] font-mono"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="mt-12 pt-8 border-t border-slate-800/80 font-mono text-xs">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div>
+        <h4 class="font-display text-sm font-600 text-slate-200 mb-3">AgentCourt Protocol</h4>
+        <p class="text-slate-400 text-[12px] leading-relaxed">
+          Trustless dispute resolution &amp; settlement for autonomous agents powered by GenLayer intelligent contracts.
+        </p>
+      </div>
+      <div>
+        <h4 class="font-display text-sm font-600 text-slate-200 mb-3">GenLayer Ecosystem</h4>
+        <ul class="space-y-2 text-slate-400">
+          <li><a href="https://genlayer.com" target="_blank" class="hover:text-cyan-400 transition-colors">Official Website</a></li>
+          <li><a href="https://studio.genlayer.com" target="_blank" class="hover:text-cyan-400 transition-colors">GenLayer Studio</a></li>
+          <li><a href="https://explorer-studio.genlayer.com" target="_blank" class="hover:text-cyan-400 transition-colors">Explorer (Bradbury Testnet)</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-display text-sm font-600 text-slate-200 mb-3">Developer Resources</h4>
+        <ul class="space-y-2 text-slate-400">
+          <li><a href="https://docs.genlayer.com" target="_blank" class="hover:text-cyan-400 transition-colors">Documentation</a></li>
+          <li><a href="https://studio.genlayer.com" target="_blank" class="hover:text-cyan-400 transition-colors">Testnet Faucet (Built-in)</a></li>
+          <li><a href="https://github.com/genlayer" target="_blank" class="hover:text-cyan-400 transition-colors">GitHub Repository</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-display text-sm font-600 text-slate-200 mb-3">Network Status</h4>
+        <div class="glass p-3 rounded-xl space-y-1.5 text-[11px]">
+          <div class="flex justify-between text-slate-400"><span>Chain ID:</span><span class="text-slate-200">61999</span></div>
+          <div class="flex justify-between text-slate-400"><span>Currency:</span><span class="text-amber-300">GEN</span></div>
+          <div class="flex justify-between text-slate-400"><span>Consensus:</span><span class="text-emerald-300">Active</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center text-[11px] text-slate-600 pt-4 border-t border-slate-900">
+      AgentCourt Protocol V2 — Real GenLayer Intelligent Contract Integration. All rights reserved.
+    </div>
+  </footer>
+</div>
+
+<script type="module">
+import { createClient } from "genlayer-js";
+import { testnetBradbury } from "genlayer-js/chains";
+
+const FIXED_REGISTRY_ADDRESS = "0x42Cf94434cBb800654cf9D4eb1048B48acfA0Ff8";
+let cachedCourtAddress = "";
+const CACHE_PREFIX = "agentcourt_v2_";
+
+async function getContractAddress() {
+  if (cachedCourtAddress) return cachedCourtAddress;
+  try {
+    const client = createClient({ chain: testnetBradbury });
+    const activeAddress = await client.readContract({
+      address: FIXED_REGISTRY_ADDRESS,
+      functionName: "get_court_address",
+      args: [],
+    });
+    if (activeAddress) {
+      cachedCourtAddress = String(activeAddress).trim();
+      const displayEl = document.getElementById("displayContractAddress");
+      if (displayEl) displayEl.textContent = cachedCourtAddress;
+      return cachedCourtAddress;
+    }
+  } catch (err) {
+    console.warn("Registry contract sync failed, using fallback address.", err);
+    showToast("Registry lookup failed — using fallback contract address. Verify it's correct before funding.", "error");
+  }
+  return "0xebebaB69597F8E9E8D4DFE2eb0Fa055f47355966";
+}
+
+function getClient() {
+  const walletAddr = state.buyerAddress ? state.buyerAddress.trim() : undefined;
+  return createClient({
+    chain: testnetBradbury,
+    account: walletAddr ? walletAddr : undefined,
+  });
+}
+
+function weiToGenString(weiValue) {
+  let wei;
+  try { wei = BigInt(weiValue); } catch (e) { return "0"; }
+  const base = 10n ** 18n;
+  const whole = wei / base;
+  const frac = wei % base;
+  if (frac === 0n) return whole.toString();
+  let fracStr = frac.toString().padStart(18, "0").replace(/0+$/, "");
+  return `${whole.toString()}.${fracStr}`;
+}
+
+function weiToGenNumber(weiValue) {
+  return Number(weiToGenString(weiValue));
+}
+
+function genAmountToWei(amountInput) {
+  const str = String(amountInput ?? "0").trim();
+  if (!str || isNaN(Number(str)) || Number(str) <= 0) return null;
+  const [wholePartRaw, fracPartRaw = ""] = str.split(".");
+  const wholePart = wholePartRaw || "0";
+  const fracPart = (fracPartRaw + "0".repeat(18)).slice(0, 18);
+  try {
+    return BigInt(wholePart) * (10n ** 18n) + BigInt(fracPart || "0");
+  } catch (e) {
+    return null;
+  }
+}
+
+async function rpcCallWithRetry(fn, { retries = 4, baseDelay = 1500, label = "RPC call" } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      const transient = /fetch|network|timeout|ECONN|rate limit|unknown rpc/i.test(msg);
+      if (!transient || attempt === retries) throw err;
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.warn(`${label} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms:`, msg);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
+// Single source of truth for pulling case state + verdict + audit report off-chain with V2 CACHE.
+async function syncVerdictData(caseId) {
+  const contractAddress = await getContractAddress();
+  if (!contractAddress) return false;
+  const client = getClient();
+
+  // V2 Fix: Reset consensus logic before reading to prevent UI ghosting
+  state.consensus = null;
+  state.auditReport = null;
+  state.auditScoreOnChain = 0;
+
+  // V2 Caching Logic: Fetch metadata first (lightweight RPC)
+  const metaStr = await rpcCallWithRetry(
+    () => client.readContract({ address: contractAddress, functionName: "get_case_meta", args: [caseId] }),
+    { label: "get_case_meta" }
+  ).catch(() => "{}");
+  
+  let meta = {};
+  try { meta = JSON.parse(metaStr); } catch(e){}
+
+  const cacheKey = CACHE_PREFIX + caseId;
+  const cachedStr = localStorage.getItem(cacheKey);
+  let localCache = null;
+  if(cachedStr) { try { localCache = JSON.parse(cachedStr); } catch(e){} }
+
+  // Compare updated_at. If unchanged, skip heavy RPC calls
+  if(localCache && meta.updated_at && localCache.updated_at === meta.updated_at) {
+    state.caseState = localCache.caseState;
+    state.caseCreated = localCache.caseCreated;
+    state.escrowBalance = localCache.escrowBalance;
+    state.consensus = localCache.consensus;
+    state.auditReport = localCache.auditReport;
+    state.auditScoreOnChain = localCache.auditScoreOnChain;
+    state.projectTitle = localCache.projectTitle;
+    return true;
+  }
+
+  const remoteState = await rpcCallWithRetry(
+    () => client.readContract({ address: contractAddress, functionName: "get_case_state", args: [caseId] }),
+    { label: "get_case_state" }
+  ).catch(() => null);
+
+  if (remoteState === null || remoteState === undefined) return false;
+  const formattedState = String(remoteState).trim();
+  if (!formattedState) return false;
+
+  state.caseState = formattedState;
+  state.caseCreated = formattedState !== "DRAFT";
+
+  const escrowVal = await rpcCallWithRetry(
+    () => client.readContract({ address: contractAddress, functionName: "get_escrow_balance", args: [caseId] }),
+    { label: "get_escrow_balance" }
+  ).catch(() => null);
+  if (escrowVal !== null && escrowVal !== undefined) {
+    try { state.escrowBalance = weiToGenNumber(escrowVal); } catch (e) {}
+    if (Number(escrowVal) > 0) state.caseCreated = true;
+  }
+
+  const verdictStates = ["ACCEPTED", "DISPUTED", "FINALIZED", "SETTLED", "APPEALED"];
+  if (!verdictStates.includes(formattedState)) {
+    // Cache active state
+    localStorage.setItem(cacheKey, JSON.stringify({
+      updated_at: meta.updated_at, caseState: state.caseState, caseCreated: state.caseCreated,
+      escrowBalance: state.escrowBalance, projectTitle: state.projectTitle
+    }));
+    saveCaseToHistory();
+    return true;
+  }
+
+  // V2 Fix: Fetch get_audit_score alongside get_audit_report
+  const [verdictResult, auditRes, scoreRes] = await Promise.all([
+    rpcCallWithRetry(() => client.readContract({ address: contractAddress, functionName: "get_adjudication_result", args: [caseId] }), { label: "get_adjudication_result" }).catch(() => ""),
+    rpcCallWithRetry(() => client.readContract({ address: contractAddress, functionName: "get_audit_report", args: [caseId] }), { label: "get_audit_report" }).catch(() => "{}"),
+    rpcCallWithRetry(() => client.readContract({ address: contractAddress, functionName: "get_audit_score", args: [caseId] }), { label: "get_audit_score" }).catch(() => 0)
+  ]);
+
+  const actualVerdict = verdictResult && String(verdictResult).trim() ? String(verdictResult).trim() : formattedState;
+  state.caseState = actualVerdict;
+  state.consensus = { verdict: actualVerdict, rate: 1.0 };
+  state.auditScoreOnChain = Number(scoreRes);
+
+  try {
+    const parsedReport = JSON.parse(auditRes);
+    if (parsedReport) {
+      if (Array.isArray(parsedReport.passed_requirements)) {
+        parsedReport.passed_requirements = parsedReport.passed_requirements.map(p => typeof p === 'object' && p !== null ? p.id : p);
+      }
+      if (Array.isArray(parsedReport.failed_requirements)) {
+        parsedReport.failed_requirements = parsedReport.failed_requirements.map(f => {
+          if (typeof f === 'object' && f !== null) return f;
+          return { id: String(f), reason: "Requirement failed evaluation." };
+        });
+      }
+    }
+    state.auditReport = parsedReport;
+    if (parsedReport && parsedReport.total_score !== undefined) {
+      state.overridePercent = Number(parsedReport.total_score);
+    }
+  } catch (e) {
+    console.warn("Failed to parse audit report JSON for case", caseId, e, auditRes);
+  }
+
+  // Update Cache
+  localStorage.setItem(cacheKey, JSON.stringify({
+    updated_at: meta.updated_at, caseState: state.caseState, caseCreated: state.caseCreated,
+    escrowBalance: state.escrowBalance, consensus: state.consensus, auditReport: state.auditReport,
+    auditScoreOnChain: state.auditScoreOnChain, projectTitle: state.projectTitle
+  }));
+
+  saveCaseToHistory();
+  return true;
+}
+
+const STATE_FLOW = ["DRAFT","ACTIVE","SUBMITTED","ADJUDICATING","ACCEPTED_DISPUTED","APPEALED","FINALIZED","SETTLED"];
+const STATE_LABELS = {
+  DRAFT:"Draft", ACTIVE:"Funded / Active", SUBMITTED:"Submitted", ADJUDICATING:"Adjudicating",
+  ACCEPTED_DISPUTED:"Verdict", APPEALED:"Appealed", FINALIZED:"Finalized", SETTLED:"Settled"
+};
+
+const DEFAULT_AGREEMENT = {
+  case_id: "AC-0001",
+  project_title: "My Custom Project",
+  payment: "500 GEN",
+  deadline: 1788000000,
+  project_scope: "Code and Documentation Verification Challenge",
+  expected_claims: [],
+  requirements: [
+    { id: "R1", description: "Invariant Testing ensuring core contract rules and escrow balances are never violated", weight: 6 },
+    { id: "R2", description: "Reentrancy Guard implemented for all token withdrawals and transfers", weight: 6 },
+    { id: "R3", description: "Formal Verification ensuring mathematical proof of contract logic correctness", weight: 5 },
+    { id: "R4", description: "Strict Access Control and Multi-Signature restrictions for privileged functions", weight: 5 },
+    { id: "R5", description: "AES-256 Encryption applied to all stored sensitive data", weight: 5 },
+    { id: "R6", description: "Input Sanitization fully protecting against SQL Injection", weight: 5 },
+    { id: "R7", description: "LLM Determinism Control and strict consensus bounds among validating nodes", weight: 5 },
+    { id: "R8", description: "OAuth2 Authentication mandatory for all API routes", weight: 4 },
+    { id: "R9", description: "Validator Collusion Resistance with slashing mechanisms for malicious voting", weight: 4 },
+    { id: "R10", description: "Complete Unit Test Coverage covering at least 80% to 100% of core logic", weight: 4 },
+    { id: "R11", description: "Environment Variables security with zero hardcoded private keys or secrets", weight: 4 },
+    { id: "R12", description: "MEV and Front-Running Resistance for transaction ordering", weight: 4 },
+    { id: "R13", description: "Comprehensive Error Handling wrapping all async operations and DB queries", weight: 4 },
+    { id: "R14", description: "Gas Optimization keeping loops and state variables minimal", weight: 4 },
+    { id: "R15", description: "State Management preventing garbage data accumulation in TreeMaps", weight: 4 },
+    { id: "R16", description: "Type Safety and Linting standards passing with zero fatal warnings", weight: 3 },
+    { id: "R17", description: "Integration Tests validating successful API responses and error codes", weight: 3 },
+    { id: "R18", description: "Modular Architecture separating business logic, routing, and database interactions", weight: 3 },
+    { id: "R19", description: "Automated CI/CD Pipelines with static analysis filters", weight: 3 },
+    { id: "R20", description: "XSS Protection ensuring user inputs are escaped and sanitized", weight: 3 },
+    { id: "R21", description: "CORS Policy configured to disallow unauthorized wildcard origins", weight: 3 },
+    { id: "R22", description: "Rate Limiting implemented against DoS attacks", weight: 3 },
+    { id: "R23", description: "Async/Await Usage avoiding callback hell for asynchronous control flow", weight: 2 },
+    { id: "R24", description: "JWT Token Validation with secure signature verification and expiration checks", weight: 2 },
+    { id: "R25", description: "Advanced Gas Optimization minimizing loop complexity and data structures", weight: 2 },
+    { id: "R26", description: "Edge Cases and Error States comprehensively covered in testing", weight: 2 },
+    { id: "R27", description: "Static Analysis Filters integrated to block vulnerable patterns before deployment", weight: 2 }
+  ],
+  adjudication_directive: "Cross-verify the submitted source code or documentation against these requirements. Provide granular audit results including passed requirements and specific failure reasons."
+};
+
+function generateUniqueCaseId() {
+  return "AC-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+}
+
+let state = {
+  activeTab: "buyer",
+  agreement: JSON.parse(JSON.stringify(DEFAULT_AGREEMENT)),
+  caseId: generateUniqueCaseId(),
+  projectTitle: "My Secure API Project",
+  buyerAddress: "",
+  providerAddress: "",
+  userCasesList: [],
+  caseDetailsCache: {},
+  caseCreated: false,
+  caseState: "DRAFT",
+  escrowBalance: 0,
+  evidence: { githubUrl:"", apiUrl:"", notes:"" },
+  appealTarget: "",
+  appealUrl: "",
+  appealJustification: "",
+  sanitizeHits: [],
+  isAdjudicating: false,
+  validators: [],
+  consensus: null,
+  auditReport: null,
+  auditScoreOnChain: 0,
+  requirementResults: [],
+  computedScore: null,
+  overridePercent: null,
+  settlementAmount: null,
+  appealed: false,
+  caseHistory: [],
+  log: [],
+  selectedReqs: DEFAULT_AGREEMENT.requirements.map(r => r.id),
+  customReqs: []
+};
+
+window.state = state;
+
+function escapeHtml(s){
+  if (s === undefined || s === null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function getRequirementStatus(reqId) {
+    if (!state.auditReport) return { label: "Pending", cls: "text-slate-400" };
+    const passedList = state.auditReport.passed_requirements || [];
+    const isPassed = passedList.includes(reqId);
+    if (isPassed) {
+        return { label: "✓ Verified", cls: "text-emerald-400" };
+    } else {
+        return { label: "✕ Failed", cls: "text-red-400" };
+    }
+}
+
+function nowStamp(){
+  const d = new Date();
+  return d.toTimeString().slice(0,8);
+}
+
+function pushLog(text, kind){
+  state.log.unshift({ text, kind: kind || "info", time: nowStamp() });
+  if(state.log.length > 60) state.log.pop();
+  renderLog();
+}
+
+function saveCaseToHistory() {
+  const existing = state.caseHistory.find(c => c.caseId === state.caseId);
+  if(!existing) {
+    state.caseHistory.unshift({
+      caseId: state.caseId,
+      title: state.projectTitle,
+      state: state.caseState,
+      escrow: state.escrowBalance,
+      provider: state.providerAddress,
+      time: nowStamp()
+    });
+  } else {
+    existing.state = state.caseState;
+    existing.escrow = state.escrowBalance;
+    existing.title = state.projectTitle;
+  }
+}
+
+async function fetchUserCases(walletAddress) {
+  const contractAddress = await getContractAddress();
+  if (!contractAddress || !walletAddress) return;
+  try {
+    const client = getClient();
+    const casesStr = await client.readContract({
+      address: contractAddress,
+      functionName: "get_cases_by_address",
+      args: [walletAddress],
+    });
+
+    if (casesStr && typeof casesStr === 'string' && casesStr.trim() !== "") {
+      const caseIds = casesStr.split(",").map(c => c.trim()).filter(Boolean);
+      state.userCasesList = caseIds;
+
+      for (const cid of caseIds) {
+        try {
+          const remoteState = await client.readContract({
+            address: contractAddress,
+            functionName: "get_case_state",
+            args: [cid],
+          });
+          const caseJsonStr = await client.readContract({
+            address: contractAddress,
+            functionName: "get_case",
+            args: [cid],
+          });
+          let parsedTitle = cid;
+          if (caseJsonStr) {
+            try {
+              const obj = JSON.parse(caseJsonStr);
+              if (obj.project_title) parsedTitle = obj.project_title;
+            } catch(e){}
+          }
+          state.caseDetailsCache[cid] = {
+            title: parsedTitle,
+            state: remoteState ? remoteState.trim() : "UNKNOWN"
+          };
+        } catch(e) {
+          state.caseDetailsCache[cid] = { title: cid, state: "ACTIVE" };
+        }
+      }
+
+      if (caseIds.length > 0) {
+        if (!state.caseId || !caseIds.includes(state.caseId)) {
+          state.caseId = caseIds[caseIds.length - 1];
+        }
+        pushLog(`Synced ${caseIds.length} cases from blockchain.`, "success");
+        await fetchOnChainHistory();
+      }
+    } else {
+      state.userCasesList = [];
+    }
+  } catch (err) {
+    console.warn("Failed to fetch cases for wallet:", err);
+  }
+}
+
+async function fetchOnChainHistory() {
+  const contractAddress = await getContractAddress();
+  if (!contractAddress) return;
+  const client = getClient();
+
+  try {
+    const caseJsonStr = await rpcCallWithRetry(
+      () => client.readContract({ address: contractAddress, functionName: "get_case", args: [state.caseId] }),
+      { label: "get_case" }
+    ).catch(() => "");
+
+    if (caseJsonStr) {
+      try {
+        const parsed = JSON.parse(caseJsonStr);
+        if (parsed.project_title) state.projectTitle = parsed.project_title;
+        if (Array.isArray(parsed.requirements) && parsed.requirements.length > 0) {
+          state.agreement = parsed;
+        }
+      } catch(e){}
+    }
+
+    await syncVerdictData(state.caseId);
+  } catch (err) {
+    console.warn("Failed to fetch on-chain history:", err);
+  }
+}
+
+async function autoSyncOnWalletConnect(walletAddress) {
+  if (!walletAddress) return;
+  pushLog(`Wallet connected: syncing cases for ${walletAddress.slice(0,6)}...`, "info");
+  await fetchUserCases(walletAddress);
+  renderAll();
+}
+
+function toggleTheme() {
+  const body = document.body;
+  const themeIcon = document.getElementById("themeIcon");
+  const themeText = document.getElementById("themeText");
+  body.classList.toggle("light-mode");
+  const isLight = body.classList.contains("light-mode");
+  if(themeIcon) themeIcon.textContent = isLight ? "☀️" : "🌙";
+  if(themeText) themeText.textContent = isLight ? "Light" : "Dark";
+  showToast(isLight ? "Light theme activated" : "Dark theme activated");
+}
+
+function showToast(message, type = "success") {
+  const container = document.getElementById("toastContainer");
+  if(!container) return;
+  const toast = document.createElement("div");
+  const borderColor = type === "success" ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200" : "border-red-500/50 bg-red-500/10 text-red-200";
+  const icon = type === "success" ? "✓" : "✕";
+
+  toast.className = `glass px-4 py-3 rounded-xl border ${borderColor} font-mono text-xs flex items-center gap-3 shadow-2xl pointer-events-auto fade-up`;
+  toast.innerHTML = `<span class="font-bold">${icon}</span> <span>${escapeHtml(message)}</span>`;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.4s ease";
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+function showLoadingOverlay(title, desc) {
+  const overlay = document.getElementById("globalOverlay");
+  const tEl = document.getElementById("overlayTitle");
+  const dEl = document.getElementById("overlayDesc");
+  if(tEl) tEl.textContent = title;
+  if(dEl) dEl.textContent = desc;
+  if(overlay) {
+    overlay.classList.remove("hidden");
+    setTimeout(() => overlay.style.opacity = "1", 10);
+  }
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById("globalOverlay");
+  if(overlay) {
+    overlay.style.opacity = "0";
+    setTimeout(() => overlay.classList.add("hidden"), 300);
+  }
+}
+
+function updateWorkflowStepper() {
+  const step1 = document.getElementById("stepCard1");
+  const step2 = document.getElementById("stepCard2");
+  const step3 = document.getElementById("stepCard3");
+  const step4 = document.getElementById("stepCard4");
+  const hintBadge = document.getElementById("stepperHintBadge");
+
+  if(!step1 || !step2 || !step3 || !step4) return;
+
+  [step1, step2, step3, step4].forEach((el, idx) => {
+    el.className = "p-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-400 flex items-center gap-2 transition-all";
+    el.querySelector("span").className = `w-5 h-5 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[10px]`;
+  });
+
+  if(!state.caseCreated) {
+    step1.className = "p-3 rounded-xl border border-cyan-400/50 bg-cyan-500/10 text-cyan-200 flex items-center gap-2 transition-all glow-cyan";
+    step1.querySelector("span").className = "w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-[10px]";
+    if(hintBadge) hintBadge.textContent = "Step 1: Configure Custom Title & Fund Escrow";
+  } else if(state.caseState === "ACTIVE") {
+    step3.className = "p-3 rounded-xl border border-violet-400/50 bg-violet-500/10 text-violet-200 flex items-center gap-2 transition-all glow-violet";
+    step3.querySelector("span").className = "w-5 h-5 rounded-full bg-violet-500/20 text-violet-300 flex items-center justify-center font-bold text-[10px]";
+    if(hintBadge) hintBadge.textContent = "Step 3: Go to Provider Tab & Submit Evidence";
+  } else {
+    step4.className = "p-3 rounded-xl border border-emerald-400/50 bg-emerald-500/10 text-emerald-200 flex items-center gap-2 transition-all glow-green";
+    step4.querySelector("span").className = "w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-[10px]";
+    if(hintBadge) hintBadge.textContent = "Step 4: Request AI Adjudication & Settle Case";
+  }
+}
+
+async function connectWallet() {
+  if (typeof window.ethereum === 'undefined') {
+    pushLog("Wallet error: No Web3 wallet detected.", "error");
+    showToast("Please install a Web3 wallet in your browser.", "error");
+    return;
+  }
+
+  try {
+    const btn = document.getElementById("btnConnectWallet");
+    if(btn) btn.textContent = "Connecting...";
+
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    if (!accounts || accounts.length === 0) throw new Error("No accounts found");
+
+    const walletAddress = accounts[0];
+    updateWalletUI(walletAddress);
+    pushLog(`Wallet connected: ${walletAddress.slice(0, 6)}...`, "success");
+    showToast("Wallet connected successfully!");
+
+    await autoSyncOnWalletConnect(walletAddress);
+  } catch (err) {
+    console.error("Wallet connection failed:", err);
+    pushLog(`Connection failed: ${err.message}`, "error");
+    showToast(`Connection failed: ${err.message}`, "error");
+    updateWalletUI(null);
+  }
+}
+
+function disconnectWallet() {
+  updateWalletUI(null);
+  pushLog("Wallet disconnected.", "warn");
+  showToast("Wallet disconnected.", "error");
+}
+
+function updateWalletUI(walletAddress) {
+  const container = document.getElementById("walletProfileContainer");
+  const dropdown = document.getElementById("accountDropdown");
+  if(dropdown) dropdown.classList.add("hidden");
+
+  state.buyerAddress = walletAddress || "";
+
+  if(!walletAddress) {
+    container.innerHTML = `
+      <button id="btnConnectWallet" class="btn glow-cyan px-4 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-sm whitespace-nowrap flex items-center gap-2">
+        <span>Connect Wallet</span>
+      </button>
+    `;
+    document.getElementById("btnConnectWallet")?.addEventListener("click", connectWallet);
+  } else {
+    const shortAddr = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
+    container.innerHTML = `
+      <button id="btnProfileTrigger" class="btn glow-green px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-200 text-sm whitespace-nowrap flex items-center gap-2.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+        <span class="font-mono text-xs">${shortAddr}</span>
+        <span class="text-[10px] text-slate-400">▼</span>
+      </button>
+    `;
+    document.getElementById("btnProfileTrigger")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+    });
+    const fullAddrEl = document.getElementById("dropdownFullAddress");
+    if(fullAddrEl) fullAddrEl.textContent = walletAddress;
+  }
+}
+
+window.addEventListener("click", () => {
+  const dropdown = document.getElementById("accountDropdown");
+  if(dropdown && !dropdown.classList.contains("hidden")) dropdown.classList.add("hidden");
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("btnConnectWallet")?.addEventListener("click", connectWallet);
+  document.getElementById("btnDisconnectWallet")?.addEventListener("click", disconnectWallet);
+  document.getElementById("btnThemeToggle")?.addEventListener("click", toggleTheme);
+  document.getElementById("btnCopyAddress")?.addEventListener("click", () => {
+    const addr = state.buyerAddress;
+    if(addr) {
+      navigator.clipboard.writeText(addr);
+      showToast("Address copied to clipboard!");
+    }
+  });
+
+  await getContractAddress();
+  renderAll();
+});
+
+if (typeof window.ethereum !== 'undefined') {
+  window.ethereum.on('accountsChanged', async (accounts) => {
+    if (accounts.length === 0) disconnectWallet();
+    else {
+      updateWalletUI(accounts[0]);
+      showToast("Wallet account switched.");
+      await autoSyncOnWalletConnect(accounts[0]);
+    }
+  });
+  window.ethereum.on('chainChanged', () => window.location.reload());
+}
+
+async function createAndFundCase(){
+  const contractAddress = await getContractAddress();
+  if(!contractAddress){ showToast("Contract Address is missing", "error"); return; }
+  if(!state.caseId.trim()){ showToast("Case ID is required", "error"); return; }
+  if(!state.providerAddress.trim()){ showToast("Provider address is required", "error"); return; }
+  if(!state.buyerAddress){ showToast("Please connect your Web3 wallet first!", "error"); return; }
+  if(state.providerAddress.trim().toLowerCase() === state.buyerAddress.trim().toLowerCase()){
+    showToast("Provider address must be different from your connected wallet", "error");
+    return;
+  }
+
+  const fundAmountRaw = document.getElementById("inpFundAmount")?.value || "500";
+  const amountWei = genAmountToWei(fundAmountRaw);
+  if(amountWei === null || amountWei <= 0n){ showToast("Valid escrow amount required", "error"); return; }
+
+  const activeReqs = DEFAULT_AGREEMENT.requirements.filter(r => state.selectedReqs.includes(r.id));
+  state.customReqs.forEach((cr, idx) => {
+    activeReqs.push({ id: `C${idx+1}`, description: cr, weight: 5 });
+  });
+
+  if(activeReqs.length === 0){ showToast("Select at least one requirement or add a custom rule", "error"); return; }
+
+  // V2 Fix: Dynamic Expected Claims Generation
+  const dynamicClaims = activeReqs.map(r => r.description);
+
+  const totalWeight = activeReqs.reduce((sum, r) => sum + r.weight, 0);
+  if (totalWeight > 0) {
+    activeReqs.forEach(r => r.weight = Math.round((r.weight / totalWeight) * 100));
+  }
+
+  const finalAgreement = {
+    ...DEFAULT_AGREEMENT,
+    case_id: state.caseId,
+    project_title: state.projectTitle || "Untitled Project",
+    expected_claims: dynamicClaims, // Replaces fixed claims
+    requirements: activeReqs
+  };
+  state.agreement = finalAgreement;
+
+  try {
+    showLoadingOverlay("Creating & Funding Escrow", `Registering case "${escapeHtml(state.projectTitle)}" & locking ${fundAmountRaw} GEN...`);
+    const client = getClient();
+
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+
+    const txHash = await client.writeContract({
+      address: contractAddress,
+      functionName: "create_and_fund_case",
+      args: [state.caseId, JSON.stringify(finalAgreement), state.providerAddress],
+      value: amountWei,
+    });
+
+    await client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 120000 });
+
+    state.caseCreated = true;
+    state.caseState = "ACTIVE";
+    state.escrowBalance = Number(fundAmountRaw);
+    saveCaseToHistory();
+    hideLoadingOverlay();
+    showToast("Case created and funded successfully!");
+
+    if (state.buyerAddress) await fetchUserCases(state.buyerAddress);
+    renderAll();
+  } catch(err) {
+    console.error(err);
+    hideLoadingOverlay();
+    showToast(`Transaction failed: ${err.message}`, "error");
+  }
+}
+
+async function connectToExistingCase() {
+  const connectedWallet = state.buyerAddress ? state.buyerAddress.trim() : "";
+  if(!connectedWallet) { showToast("Please connect your Web3 wallet first!", "error"); return; }
+
+  try {
+    showLoadingOverlay("Syncing Cases", "Retrieving all cases from blockchain for this wallet...");
+    await fetchUserCases(connectedWallet);
+    hideLoadingOverlay();
+    showToast("Cases synced successfully!");
+    renderAll();
+  } catch(err) {
+    hideLoadingOverlay();
+    showToast(`Sync failed: ${err.message}`, "error");
+  }
+}
+
+async function submitDelivery(){
+  const contractAddress = await getContractAddress();
+  if(!contractAddress){ showToast("Contract Address is missing", "error"); return; }
+  if(state.caseState !== "ACTIVE"){ showToast("Case is not ACTIVE", "error"); return; }
+
+  const connectedWallet = state.buyerAddress ? state.buyerAddress.trim().toLowerCase() : "";
+  if (connectedWallet && state.providerAddress && connectedWallet !== state.providerAddress.trim().toLowerCase()) {
+    showToast("Error: You must switch to the Provider wallet address to submit delivery!", "error");
+    return;
+  }
+
+  const evidencePackage = JSON.stringify({
+    url: state.evidence.githubUrl || state.evidence.apiUrl,
+    notes: state.evidence.notes
+  });
+
+  try {
+    showLoadingOverlay("Submitting Delivery", "Generating Evidence Snapshot & Storing on-chain...");
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+
+    const txHash = await client.writeContract({
+      address: contractAddress,
+      functionName: "submit_delivery",
+      args: [state.caseId, evidencePackage],
+    });
+
+    await client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 120000 });
+
+    state.caseState = "SUBMITTED";
+    saveCaseToHistory();
+    hideLoadingOverlay();
+    showToast("Delivery evidence snapshot submitted on-chain!");
+    renderAll();
+  } catch(err) {
+    console.error(err);
+    hideLoadingOverlay();
+    showToast(`Submission failed: ${err.message}`, "error");
+  }
+}
+
+// ==========================================
+// DYNAMIC ADJUDICATION FUNCTION (V2 Secure Flow)
+// ==========================================
+async function requestAdjudication(){
+  const contractAddress = await getContractAddress();
+  if(!contractAddress || state.caseState !== "SUBMITTED" || state.isAdjudicating) return;
+
+  state.caseState = "ADJUDICATING";
+  state.isAdjudicating = true;
+  renderAll();
+  showLoadingOverlay("Smart Code Auditor in Progress", "Transaction submitted. Waiting for validators consensus & AI adjudication...");
+
+  try {
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+    
+    // V2 Fix: `web_url` argument completely removed. Contract pulls recorded evidence securely.
+    const txHash = await rpcCallWithRetry(
+      () => client.writeContract({ address: contractAddress, functionName: "request_adjudication", args: [state.caseId] }),
+      { label: "request_adjudication tx" }
+    );
+
+    pushLog(`Adjudication transaction sent: ${txHash}`, "info");
+
+    let receiptOk = false;
+    try {
+      await rpcCallWithRetry(
+        () => client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 180000 }),
+        { retries: 2, baseDelay: 3000, label: "waitForTransactionReceipt(request_adjudication)" }
+      );
+      receiptOk = true;
+    } catch (receiptErr) {
+      console.warn("waitForTransactionReceipt failed, falling back to state polling:", receiptErr);
+    }
+
+    let isFinalized = false;
+    let attempts = 0;
+    const maxAttempts = 30; // 30 attempts * 10s = 5 minutes total polling time
+
+    if (receiptOk) {
+      isFinalized = await syncVerdictData(state.caseId)
+        .then(() => ["ACCEPTED", "DISPUTED", "FINALIZED", "SETTLED"].includes(state.caseState))
+        .catch(() => false);
+    }
+
+    while (!isFinalized && attempts < maxAttempts) {
+      attempts++;
+      await new Promise(r => setTimeout(r, 10000)); // 10 second delay between checks to protect RPC limits
+
+      showLoadingOverlay("AI Consensus in Progress", `Validating code and collecting node votes (Attempt ${attempts}/${maxAttempts}, checking every 10s)...`);
+
+      try {
+        const synced = await syncVerdictData(state.caseId);
+        if (synced && ["ACCEPTED", "DISPUTED", "FINALIZED", "SETTLED"].includes(state.caseState)) {
+          isFinalized = true;
+        }
+      } catch (pollErr) {
+        console.warn("Polling attempt warning (will retry in 10s):", pollErr);
+      }
+    }
+
+    if (!isFinalized) {
+      throw new Error("Adjudication consensus timed out on the frontend. Click 'Sync Case' — the transaction may still finalize on-chain.");
+    }
+
+    state.isAdjudicating = false;
+    hideLoadingOverlay();
+    showToast(`Audit completed successfully! Verdict: ${state.consensus ? state.consensus.verdict : state.caseState}`);
+    renderAll();
+  } catch(err) {
+    state.isAdjudicating = false;
+    try { await syncVerdictData(state.caseId); } catch(e) {}
+    if (!["ACCEPTED","DISPUTED","FINALIZED","SETTLED"].includes(state.caseState)) {
+      state.caseState = "SUBMITTED";
+    }
+    hideLoadingOverlay();
+    console.error(err);
+    showToast(`Adjudication issue: ${err.message}. Click 'Sync Case' to re-check on-chain status.`, "error");
+    renderAll();
+  }
+}
+
+async function raiseAppeal() {
+  const contractAddress = await getContractAddress();
+  if(!contractAddress || !state.appealJustification.trim()) {
+    showToast("Please enter appeal justification.", "error");
+    return;
+  }
+
+  // V2 Structured Appeal
+  const structuredAppeal = JSON.stringify({
+    reason: state.appealJustification,
+    target: state.appealTarget,
+    new_url: state.appealUrl
+  });
+
+  try {
+    showLoadingOverlay("Recording Appeal", "Submitting structured appeal justification on-chain...");
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+
+    const appealTxHash = await rpcCallWithRetry(
+      () => client.writeContract({ address: contractAddress, functionName: "raise_appeal", args: [state.caseId, structuredAppeal] }),
+      { label: "raise_appeal tx" }
+    );
+    await rpcCallWithRetry(
+      () => client.waitForTransactionReceipt({ hash: appealTxHash, waitUntil: "finalized", timeout: 120000 }),
+      { retries: 2, baseDelay: 3000, label: "waitForTransactionReceipt(raise_appeal)" }
+    );
+
+    state.caseState = "APPEALED";
+    renderAll();
+    showLoadingOverlay("Running Re-Audit", "Submitting decentralized re-adjudication...");
+
+    // V2 Fix: request_adjudication takes only case_id
+    const txHash = await rpcCallWithRetry(
+      () => client.writeContract({ address: contractAddress, functionName: "request_adjudication", args: [state.caseId] }),
+      { label: "request_adjudication (appeal) tx" }
+    );
+    await rpcCallWithRetry(
+      () => client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 180000 }),
+      { retries: 2, baseDelay: 3000, label: "waitForTransactionReceipt(re-adjudication)" }
+    );
+
+    await syncVerdictData(state.caseId);
+    state.appealJustification = "";
+    state.appealTarget = "";
+    state.appealUrl = "";
+    hideLoadingOverlay();
+    showToast(`Appeal processed! New verdict: ${state.consensus ? state.consensus.verdict : state.caseState}`);
+    renderAll();
+  } catch(err) {
+    hideLoadingOverlay();
+    try { await syncVerdictData(state.caseId); } catch(e) {}
+    showToast(`Appeal step failed: ${err.message}. Click 'Sync Case' to verify on-chain status.`, "error");
+    renderAll();
+  }
+}
+
+async function finalizeSettlement(percent){
+  const contractAddress = await getContractAddress();
+  if(!contractAddress) return;
+
+  const connectedWallet = state.buyerAddress ? state.buyerAddress.trim() : "";
+  if(!connectedWallet){ showToast("Please connect your Web3 wallet first!", "error"); return; }
+
+  try {
+    showLoadingOverlay("Finalizing Settlement", `Registering payout (${percent}%) on-chain...`);
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+    
+    const p = Math.max(0, Math.min(100, Number(percent)));
+
+    const txHash = await client.writeContract({
+      address: contractAddress,
+      functionName: "finalize_and_calculate_settlement",
+      args: [state.caseId, BigInt(p)],
+    });
+
+    await client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 120000 });
+
+    const payout = Math.floor((state.escrowBalance * p) / 100);
+    state.settlementAmount = payout;
+    state.overridePercent = p;
+    state.caseState = "FINALIZED";
+    saveCaseToHistory();
+    hideLoadingOverlay();
+    showToast(`Settlement finalized: ${payout} GEN`);
+    renderAll();
+  } catch(err) {
+    hideLoadingOverlay();
+    showToast(`Finalization failed: ${err.message}`, "error");
+  }
+}
+
+// V2 Feature: Force Finalize
+async function forceFinalize() {
+  const contractAddress = await getContractAddress();
+  if(!contractAddress) return;
+
+  try {
+    showLoadingOverlay("Force Finalizing", "Resolving abandoned case based on grace period...");
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+
+    const txHash = await rpcCallWithRetry(
+      () => client.writeContract({ address: contractAddress, functionName: "force_finalize", args: [state.caseId] }),
+      { label: "force_finalize tx" }
+    );
+
+    await rpcCallWithRetry(
+      () => client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 120000 }),
+      { retries: 2, baseDelay: 3000, label: "waitForTransactionReceipt(force_finalize)" }
+    );
+
+    await syncVerdictData(state.caseId);
+    hideLoadingOverlay();
+    showToast("Case force finalized successfully.");
+    renderAll();
+  } catch(err) {
+    hideLoadingOverlay();
+    showToast(`Force finalize failed: ${err.message}`, "error");
+  }
+}
+
+async function settleCase(){
+  const contractAddress = await getContractAddress();
+  if(!contractAddress) return;
+
+  try {
+    showLoadingOverlay("Releasing Escrow", "Transferring tokens on-chain...");
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+
+    const txHash = await client.writeContract({
+      address: contractAddress,
+      functionName: "settle_case",
+      args: [state.caseId],
+    });
+
+    await client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 120000 });
+
+    state.caseState = "SETTLED";
+    saveCaseToHistory();
+    hideLoadingOverlay();
+    showToast("Escrow released & case fully settled!");
+    renderAll();
+  } catch(err) {
+    hideLoadingOverlay();
+    showToast(`Settlement failed: ${err.message}`, "error");
+  }
+}
+
+async function claimRefund(){
+  const contractAddress = await getContractAddress();
+  if(!contractAddress) return;
+
+  try {
+    showLoadingOverlay("Claiming Refund", "Requesting deadline-based refund on-chain...");
+    const client = getClient();
+    
+    // Ensure wallet connects to Bradbury before writing
+    await client.connect("testnetBradbury");
+
+    const txHash = await client.writeContract({
+      address: contractAddress,
+      functionName: "claim_refund_after_deadline",
+      args: [state.caseId],
+    });
+
+    await client.waitForTransactionReceipt({ hash: txHash, waitUntil: "finalized", timeout: 120000 });
+
+    state.caseState = "SETTLED";
+    state.settlementAmount = 0;
+    saveCaseToHistory();
+    hideLoadingOverlay();
+    showToast("Refund claimed — escrow returned to buyer.");
+    renderAll();
+  } catch(err) {
+    hideLoadingOverlay();
+    showToast(`Refund claim failed: ${err.message}`, "error");
+  }
+}
+
+function resetCase(){
+  state = {
+    ...state,
+    caseId: generateUniqueCaseId(),
+    projectTitle: "New Project",
+    caseCreated: false,
+    caseState: "DRAFT",
+    escrowBalance: 0,
+    evidence: {githubUrl:"", apiUrl:"", notes:""},
+    auditReport: null,
+    consensus: null,
+    auditScoreOnChain: 0,
+    settlementAmount: null,
+    appealJustification: "",
+    appealTarget: "",
+    appealUrl: "",
+    selectedReqs: DEFAULT_AGREEMENT.requirements.map(r => r.id),
+    customReqs: []
+  };
+  showToast("Started new case configuration.");
+  state.activeTab = "buyer";
+  renderAll();
+}
+
+function setTab(t){ state.activeTab = t; renderAll(); }
+
+function renderCaseSelectorBar() {
+  const container = document.getElementById("dynamicCaseSelectorContainer");
+  if (!container) return;
+  if (!state.userCasesList || state.userCasesList.length <= 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="glass rounded-2xl px-6 py-4 mb-6 flex items-center justify-between flex-wrap gap-3 border border-cyan-500/30">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <span class="text-xs text-cyan-300 font-mono font-600">📁 Synced Cases (${state.userCasesList.length}):</span>
+        <select id="walletCaseDropdown" class="rounded-lg px-3 py-2 text-xs font-mono bg-slate-900 text-cyan-200 border border-slate-700 w-full sm:w-72">
+          ${state.userCasesList.map(id => {
+            const info = state.caseDetailsCache[id] || { title: id, state: 'ACTIVE' };
+            return `
+              <option value="${escapeHtml(id)}" ${id === state.caseId ? 'selected' : ''}>
+                📌 ${escapeHtml(info.title)} [${escapeHtml(id)}] — (${escapeHtml(info.state)})
+              </option>
+            `;
+          }).join("")}
+        </select>
+      </div>
+      <span class="text-[11px] text-slate-400 font-mono">Select any past or active case to jump straight to its workflow</span>
+    </div>
+  `;
+
+  document.getElementById("walletCaseDropdown")?.addEventListener("change", async (e) => {
+    state.caseId = e.target.value;
+    showLoadingOverlay("Switching Case", `Loading details for case ${state.caseId}...`);
+    await fetchOnChainHistory();
+    hideLoadingOverlay();
+    renderAll();
+    showToast(`Switched to case: ${state.caseId}`);
+  });
+}
+
+function renderStateStrip(){
+  const el = document.getElementById("stateStrip");
+  const currentIdx = (() => {
+    const cs = state.caseState;
+    if(cs === "DRAFT") return 0;
+    if(cs === "ACTIVE") return 1;
+    if(cs === "SUBMITTED") return 2;
+    if(cs === "ADJUDICATING") return 3;
+    if(cs === "ACCEPTED" || cs === "DISPUTED") return 4;
+    if(cs === "APPEALED") return 5;
+    if(cs === "FINALIZED") return 6;
+    if(cs === "SETTLED") return 7;
+    return 0;
+  })();
+  el.innerHTML = STATE_FLOW.map((s, i) => {
+    const done = i < currentIdx;
+    const active = i === currentIdx;
+    let label = STATE_LABELS[s];
+    if(s === "ACCEPTED_DISPUTED" && (state.caseState==="ACCEPTED"||state.caseState==="DISPUTED")) label = state.caseState;
+    const color = active
+      ? (state.caseState === "DISPUTED" ? "border-red-400 text-red-300 bg-red-400/10" : "border-cyan-400 text-cyan-300 bg-cyan-400/10")
+      : done ? "border-emerald-500/60 text-emerald-300 bg-emerald-500/10" : "border-slate-700 text-slate-500";
+    return `
+      <div class="flex items-center gap-1 shrink-0">
+        <div class="state-node px-3 py-1.5 rounded-full border ${color} font-mono text-[11px] whitespace-nowrap ${active?'glow-cyan':''}">${label}</div>
+        ${i < STATE_FLOW.length-1 ? `<div class="state-line w-6 md:w-8 h-px ${done? 'bg-emerald-500/60':'bg-slate-700'}"></div>` : ''}
+      </div>`;
+  }).join("");
+}
+
+function badgeForState(){
+  const cs = state.caseState;
+  const map = {
+    DRAFT: ["bg-slate-700/50 text-slate-300","Draft"],
+    ACTIVE: ["bg-cyan-500/15 text-cyan-300","Active / Funded"],
+    SUBMITTED: ["bg-violet-500/15 text-violet-300","Submitted"],
+    ADJUDICATING: ["bg-amber-500/15 text-amber-300","Adjudicating"],
+    ACCEPTED: ["bg-emerald-500/15 text-emerald-300","Accepted"],
+    DISPUTED: ["bg-red-500/15 text-red-300","Disputed"],
+    APPEALED: ["bg-amber-500/15 text-amber-300","Appealed"],
+    FINALIZED: ["bg-indigo-500/15 text-indigo-300","Finalized"],
+    SETTLED: ["bg-emerald-500/20 text-emerald-300","Settled"],
+  };
+  return map[cs] || map.DRAFT;
+}
+
+function renderCaseSummary(){
+  const el = document.getElementById("caseSummary");
+  const [cls,label] = badgeForState();
+  el.innerHTML = `
+    <div class="flex justify-between"><span class="text-slate-500">project_title</span><span class="text-amber-200 font-bold truncate max-w-[160px]">${escapeHtml(state.projectTitle)}</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">case_id</span><span class="text-cyan-300">${escapeHtml(state.caseId)}</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">state</span><span class="px-2 py-0.5 rounded ${cls} text-[11px]">${label}</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">buyer</span><span>${state.buyerAddress ? escapeHtml(state.buyerAddress.slice(0,6)+'...'+state.buyerAddress.slice(-4)) : "Not connected"}</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">provider</span><span>${state.providerAddress ? escapeHtml(state.providerAddress.slice(0,6)+'...'+state.providerAddress.slice(-4)) : "—"}</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">escrow</span><span class="text-amber-300">${state.escrowBalance} GEN</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">verdict</span><span>${state.consensus ? escapeHtml(state.consensus.verdict) : "—"}</span></div>
+    <div class="flex justify-between"><span class="text-slate-500">settlement</span><span class="text-emerald-300">${state.settlementAmount !== null ? state.settlementAmount + " GEN" : "—"}</span></div>
+  `;
+}
+
+function renderLog(){
+  const el = document.getElementById("activityLog");
+  const colorFor = k => k==="success" ? "text-emerald-300" : k==="error" ? "text-red-300" : k==="warn" ? "text-amber-300" : "text-slate-400";
+  if(!state.log.length){
+    el.innerHTML = `<div class="text-slate-600 text-[12px]">No activity yet.</div>`;
+    return;
+  }
+  el.innerHTML = state.log.map(l => {
+    let formattedText = escapeHtml(l.text);
+    formattedText = formattedText.replace(/(0x[a-fA-F0-9]{10,})/g, (hash) => {
+      const explorerUrl = `https://explorer-studio.genlayer.com/tx/${hash}`;
+      return `<a href="${explorerUrl}" target="_blank" class="text-cyan-400 underline hover:text-cyan-300 font-mono inline-flex items-center gap-1">${hash.slice(0, 10)}... ↗</a>`;
+    });
+    return `
+      <div class="fade-up border-l-2 border-slate-700 pl-2">
+        <span class="text-slate-600">[${l.time}]</span> <span class="${colorFor(l.kind)}">${formattedText}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function currentDisplayScore(){
+  if(state.auditScoreOnChain !== undefined && state.auditScoreOnChain > 0) return state.auditScoreOnChain;
+  if(state.auditReport && state.auditReport.total_score !== undefined) return Number(state.auditReport.total_score);
+  if(state.overridePercent !== null && state.overridePercent !== undefined) return state.overridePercent;
+  return 50;
+}
+
+function renderScale(){
+  const score = currentDisplayScore();
+  const angle = Math.max(-20, Math.min(20, (score - 50) * 0.4));
+  const holder = document.getElementById("scaleSvgHolder");
+  const badge = document.getElementById("scoreBadge");
+  badge.textContent = state.consensus ? score + "%" : "— %";
+  badge.className = "font-mono text-xs px-2 py-0.5 rounded-full " + (score >= 60 ? "bg-emerald-500/15 text-emerald-300" : "bg-red-500/15 text-red-300");
+
+  holder.innerHTML = `
+  <svg viewBox="0 0 400 260" class="w-full max-w-[320px]">
+    <defs>
+      <linearGradient id="pillarGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#22d3ee"/>
+      </linearGradient>
+      <radialGradient id="baseGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="200" cy="235" rx="120" ry="14" fill="url(#baseGlow)"/>
+    <rect x="170" y="222" width="60" height="10" rx="2" fill="#1e293b" stroke="#334155"/>
+    <rect x="150" y="232" width="100" height="8" rx="2" fill="#0f172a" stroke="#334155"/>
+    <rect x="195" y="92" width="10" height="132" rx="3" fill="url(#pillarGrad)"/>
+    <circle cx="200" cy="92" r="7" fill="#22d3ee"/>
+    <g class="scale-beam" style="transform:rotate(${angle}deg)">
+      <rect x="90" y="88" width="220" height="5" rx="2.5" fill="#94a3b8"/>
+      <line x1="110" y1="90" x2="110" y2="128" stroke="#64748b" stroke-width="1.5"/>
+      <path d="M90 128 Q110 148 130 128" fill="none" stroke="${score < 50 ? '#f87171' : '#475569'}" stroke-width="3" stroke-linecap="round"/>
+      <line x1="290" y1="90" x2="290" y2="128" stroke="#64748b" stroke-width="1.5"/>
+      <path d="M270 128 Q290 148 310 128" fill="none" stroke="${score >= 60 ? '#34d399' : '#475569'}" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <circle cx="200" cy="40" r="5" fill="#8b5cf6"/>
+    <text x="200" y="18" text-anchor="middle" fill="#94a3b8" font-size="9" font-family="IBM Plex Mono, monospace">SMART CODE AUDITOR</text>
+  </svg>`;
+}
+
+function renderBuyerTab(){
+  const disabledCreate = state.caseCreated;
+  const connectedWallet = state.buyerAddress ? state.buyerAddress.trim().toLowerCase() : "";
+  const isBuyerOfCase = !connectedWallet || connectedWallet === (state.buyerAddress || "").trim().toLowerCase();
+  const showRefundClaim = disabledCreate && state.caseState === "ACTIVE" && isBuyerOfCase;
+
+  return `
+    <div class="glass rounded-2xl p-6 space-y-6 fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 class="font-display text-lg font-600 mb-1">Create, Configure &amp; Fund Agreement</h2>
+          <p class="text-sm text-slate-400">Set custom project title, auto-generated unique ID, standards, and lock escrow in 1-click.</p>
+        </div>
+        ${state.caseCreated ? `<span class="font-mono text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">✓ Case Active &amp; Funded</span>` : `<span class="font-mono text-[11px] px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30">Step 1: Configure &amp; Fund</span>`}
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Project Title / Custom Note</label>
+          <input id="inpProjectTitle" value="${escapeHtml(state.projectTitle)}" ${disabledCreate?'disabled':''} class="w-full rounded-lg px-3 py-2 ${disabledCreate?'opacity-60':''}" placeholder="e.g. DeFi Smart Contract Audit" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Unique Case ID (Auto-Generated)</label>
+          <input id="inpCaseId" value="${escapeHtml(state.caseId)}" disabled class="w-full rounded-lg px-3 py-2 opacity-60 font-mono text-cyan-300" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Provider Address</label>
+          <input id="inpProvider" value="${escapeHtml(state.providerAddress)}" placeholder="0x..." ${disabledCreate?'disabled':''} class="w-full rounded-lg px-3 py-2 ${disabledCreate?'opacity-60':''}" />
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs text-cyan-300 font-mono uppercase tracking-wider block">Select Standards &amp; Custom Rules to Enforce</label>
+          <span class="text-[11px] font-mono text-slate-400">${state.selectedReqs.length} selected + ${state.customReqs.length} custom</span>
+        </div>
+
+        <div class="rounded-lg border border-slate-700/60 divide-y divide-slate-700/50 overflow-hidden max-h-72 overflow-y-auto bg-slate-900/40">
+          ${DEFAULT_AGREEMENT.requirements.map(r => {
+            const checked = state.selectedReqs.includes(r.id);
+            return `
+              <label class="flex items-center justify-between px-3 py-2.5 text-sm hover:bg-slate-800/40 cursor-pointer transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" data-req-id="${escapeHtml(r.id)}" ${checked ? 'checked' : ''} ${disabledCreate?'disabled':''} class="checkbox-req w-4 h-4 rounded" />
+                  <span class="text-slate-300 text-xs"><strong class="text-cyan-400 font-mono mr-1">${escapeHtml(r.id)}:</strong> ${escapeHtml(r.description)}</span>
+                </div>
+                <span class="font-mono text-[11px] text-amber-300 shrink-0 ml-2">${r.weight}%</span>
+              </label>
+            `;
+          }).join("")}
+        </div>
+
+        ${!disabledCreate ? `
+          <div class="flex gap-2">
+            <input id="inpCustomRule" placeholder="Add custom rule description (e.g., Must include Dockerfile)..." class="w-full rounded-lg px-3 py-2 text-xs" />
+            <button id="btnAddCustomRule" class="btn px-4 py-2 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 text-xs whitespace-nowrap">
+              + Add Rule
+            </button>
+          </div>
+        ` : ''}
+
+        ${state.customReqs.length > 0 ? `
+          <div class="space-y-1.5 pt-1">
+            <span class="text-[11px] text-slate-400 font-mono">Custom Rules Added:</span>
+            <div class="space-y-1">
+              ${state.customReqs.map((cr, idx) => `
+                <div class="flex items-center justify-between bg-cyan-950/20 px-3 py-1.5 rounded border border-cyan-500/20 text-xs font-mono text-cyan-200">
+                  <span>C${idx+1}: ${escapeHtml(cr)}</span>
+                  ${!disabledCreate ? `<button data-del-custom="${idx}" class="text-red-400 hover:text-red-300 text-[10px]">Remove</button>` : ''}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="border-t border-slate-700/50 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="w-full sm:w-auto">
+          <label class="text-xs text-slate-400 mb-1 block">Escrow Amount (GEN)</label>
+          <input id="inpFundAmount" type="number" min="0" step="0.000001" value="500" ${disabledCreate?'disabled':''} class="rounded-lg px-3 py-2 w-full sm:w-48 ${disabledCreate?'opacity-60':''}" />
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto sm:mt-5 flex-wrap">
+          <button id="btnCreateAndFund" ${disabledCreate?'disabled':''} class="btn glow-cyan px-6 py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 w-full sm:w-auto">
+            ${disabledCreate ? "✓ Case Funded & Active" : "🚀 Create & Fund Escrow (1-Click)"}
+          </button>
+          <button id="btnConnectCase" class="btn px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-cyan-300 text-xs hover:bg-slate-700/80 whitespace-nowrap">
+            🔗 Sync Case
+          </button>
+          ${disabledCreate ? `<button id="btnNewCase" class="btn px-4 py-3 rounded-xl bg-violet-500/20 border border-violet-400/50 text-violet-200 text-xs whitespace-nowrap">➕ New Case</button>` : ''}
+        </div>
+      </div>
+
+      ${showRefundClaim ? `
+        <div class="border-t border-slate-700/50 pt-5 space-y-2">
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono">
+            ⏳ If the provider hasn't submitted delivery and the agreement's deadline has passed, you can reclaim your escrow.
+          </div>
+          <button id="btnClaimRefund" class="btn px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-100 text-xs">
+            Claim Refund (Deadline Passed)
+          </button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderProviderTab(){
+  const disabled = state.caseState !== "ACTIVE";
+  const connectedWallet = state.buyerAddress.trim().toLowerCase();
+  const isProviderActive = !disabled && (!connectedWallet || !state.providerAddress || connectedWallet === state.providerAddress.trim().toLowerCase());
+
+  return `
+    <div class="glass rounded-2xl p-6 space-y-5 fade-up">
+      <div>
+        <h2 class="font-display text-lg font-600 mb-1">Submit Delivery Evidence</h2>
+        <p class="text-sm text-slate-400">Package proof of completed work to be stored securely on-chain.</p>
+      </div>
+
+      ${(!disabled && connectedWallet && state.providerAddress && connectedWallet !== state.providerAddress.trim().toLowerCase()) ? `
+        <div class="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-200 font-mono text-xs">
+          ⚠️ Connected wallet does not match registered provider address. Switch accounts in Web3 wallet to submit delivery.
+        </div>
+      ` : ''}
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">GitHub repository URL / Raw Document URL</label>
+          <input id="inpGithub" value="${escapeHtml(state.evidence.githubUrl)}" placeholder="https://raw.githubusercontent.com/.../README_mismatch.md" class="w-full rounded-lg px-3 py-2" ${disabled?'disabled':''} />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Live API URL</label>
+          <input id="inpApiUrl" value="${escapeHtml(state.evidence.apiUrl)}" placeholder="https://api.yourservice.dev" class="w-full rounded-lg px-3 py-2" ${disabled?'disabled':''} />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-400 mb-1 block">Delivery notes</label>
+        <textarea id="inpNotes" rows="5" placeholder="Description of the implemented solution..." class="w-full rounded-lg px-3 py-2" ${disabled?'disabled':''}>${escapeHtml(state.evidence.notes)}</textarea>
+      </div>
+
+      <button id="btnSubmitDelivery" ${(!isProviderActive)?'disabled':''} class="btn glow-violet px-6 py-3 rounded-xl bg-violet-500/15 border border-violet-400/40 text-violet-200">
+        Submit Delivery On-Chain
+      </button>
+    </div>
+  `;
+}
+
+function renderCourtTab(){
+  const canAdjudicate = state.caseState === "SUBMITTED";
+  const verdictStates = ["ACCEPTED","DISPUTED","FINALIZED","SETTLED","APPEALED"];
+  const hasVerdictData = !!state.consensus || verdictStates.includes(state.caseState);
+  const inConsensus = ["ACCEPTED","DISPUTED"].includes(state.caseState);
+  const isDisputed = state.caseState === "DISPUTED" || (state.consensus && state.consensus.verdict === "DISPUTED");
+  const isAccepted = state.caseState === "ACCEPTED" || (state.consensus && state.consensus.verdict === "ACCEPTED");
+  const canFinalize = inConsensus || state.caseState === "APPEALED";
+  const canSettle = state.caseState === "FINALIZED";
+
+  const connectedWallet = state.buyerAddress ? state.buyerAddress.trim().toLowerCase() : "";
+  const isBuyerConnected = !!connectedWallet;
+
+  const totalEscrow = Number(state.escrowBalance) || 500;
+  
+  // V2 Fix: Use actual on-chain score for limits, fallback to UI calculation if un-synced
+  const auditScore = state.auditScoreOnChain || (isAccepted ? 100 : 0);
+  const defaultProviderPercent = isDisputed ? 0 : auditScore;
+
+  const passedReqs = state.auditReport && state.auditReport.passed_requirements ? state.auditReport.passed_requirements : [];
+  const failedReqsObj = state.auditReport && state.auditReport.failed_requirements ? state.auditReport.failed_requirements : [];
+
+  return `
+    <div class="glass rounded-2xl p-6 space-y-6 fade-up">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 class="font-display text-lg font-600 mb-1">Smart Code Auditor &amp; AI Adjudication</h2>
+          <p class="text-sm text-slate-400">Decentralized code inspection and granular requirements verification.</p>
+        </div>
+        <button id="btnAdjudicate" ${(!canAdjudicate || state.isAdjudicating)?'disabled':''} class="btn glow-cyan px-6 py-3 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-cyan-200 whitespace-nowrap">
+          ${state.isAdjudicating ? "Running Code Audit…" : "Request Smart Code Audit"}
+        </button>
+      </div>
+
+      ${hasVerdictData ? `
+        <div class="rounded-xl border ${isAccepted?'border-emerald-500/40 bg-emerald-500/10':'border-red-500/40 bg-red-500/10'} p-4 flex items-center justify-between flex-wrap gap-3 shadow-lg">
+          <div>
+            <div class="font-mono text-xs text-slate-400 mb-1">Audit Verdict Result</div>
+            <div class="font-display text-2xl font-700 ${isAccepted?'text-emerald-300':'text-red-300'}">${escapeHtml(state.consensus ? state.consensus.verdict : state.caseState)}</div>
+          </div>
+          <div class="text-right font-mono text-xs text-slate-300">
+            Enforced Code Quality Score: <span class="${isAccepted?'text-emerald-400':'text-red-400'} font-bold text-base">${auditScore}%</span>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="glass p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-3">
+            <h3 class="font-display text-xs font-600 text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+              <span>✅ Passed Standards (${passedReqs.length})</span>
+            </h3>
+            <div class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs font-mono">
+              ${passedReqs.length === 0 ? `<div class="text-slate-500">No standards successfully passed.</div>` : passedReqs.map(rId => {
+                const reqItem = state.agreement.requirements.find(r => r.id === rId);
+                return `
+                  <div class="flex items-center justify-between bg-emerald-950/30 p-2 rounded border border-emerald-500/20 text-emerald-200">
+                    <span><strong class="text-emerald-400 mr-1">${escapeHtml(rId)}:</strong> ${escapeHtml(reqItem ? reqItem.description : 'Standard ' + rId)}</span>
+                    <span class="text-emerald-400">✓ Pass</span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+
+          <div class="glass p-4 rounded-xl border border-red-500/30 bg-red-500/5 space-y-3">
+            <h3 class="font-display text-xs font-600 text-red-300 uppercase tracking-wider flex items-center gap-2">
+              <span>❌ Violated / Missing Standards (${failedReqsObj.length})</span>
+            </h3>
+            <div class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs font-mono">
+              ${failedReqsObj.length === 0 ? `<div class="text-slate-500">No violations detected. Clean audit!</div>` : failedReqsObj.map(f => {
+                const reqItem = state.agreement.requirements.find(r => r.id === f.id);
+                return `
+                  <div class="bg-red-950/30 p-2.5 rounded border border-red-500/20 text-red-200 space-y-1">
+                    <div class="flex justify-between font-bold">
+                      <span class="text-red-400">${escapeHtml(f.id)} Violation</span>
+                    </div>
+                    <div class="text-[11px] text-slate-300">${escapeHtml(reqItem ? reqItem.description : '')}</div>
+                    <div class="text-[11px] text-amber-300 bg-red-950/60 p-1.5 rounded border border-red-500/30 mt-1">
+                      💡 <strong>Auditor Reason:</strong> ${escapeHtml(f.reason)}
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      ${isDisputed ? `
+        <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 p-5 space-y-3">
+          <h3 class="font-display text-sm font-600 text-amber-200">⚖️ Audit Disputed — Structured Appeal</h3>
+          <p class="text-xs text-slate-300">The code auditor identified gaps. Submit a structured appeal pointing to a specific requirement and providing new evidence (max 1 appeal per party).</p>
+          <div class="grid md:grid-cols-2 gap-3 mb-2">
+              <input id="inpAppealTarget" value="${escapeHtml(state.appealTarget)}" placeholder="Target Requirement (e.g. R6)" class="w-full rounded-lg px-3 py-2 text-xs" />
+              <input id="inpAppealUrl" value="${escapeHtml(state.appealUrl)}" placeholder="New Evidence URL (Optional)" class="w-full rounded-lg px-3 py-2 text-xs" />
+          </div>
+          <textarea id="inpAppealJustification" rows="3" placeholder="Provide appeal justification..." class="w-full rounded-lg px-3 py-2">${escapeHtml(state.appealJustification || '')}</textarea>
+          <button id="btnAppeal" class="btn glow-amber px-5 py-2.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-100 text-xs">
+            Submit Appeal &amp; Re-run Code Audit
+          </button>
+        </div>
+      ` : ''}
+
+      ${canFinalize ? `
+        <div class="border-t border-slate-700/50 pt-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display text-sm font-600 text-slate-200">Smart Settlement Distribution (Score-Based)</h3>
+            <span class="font-mono text-xs px-2.5 py-1 rounded-full ${isAccepted ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/30'}">
+              ${isAccepted ? `✨ Payout based on code quality score (${auditScore}%)` : '🛡️ Full Refund to Buyer (Audit Failed)'}
+            </span>
+          </div>
+
+          ${!isBuyerConnected ? `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 font-mono text-xs">
+              ⚠️ Only the buyer's connected wallet can finalize and settle this case.
+            </div>
+          ` : ''}
+
+          <div class="glass p-4 rounded-xl border border-slate-700/60 space-y-4">
+            <div class="grid grid-cols-2 gap-4 text-xs font-mono">
+              <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-400 block mb-1">Buyer Refund</span>
+                <span class="text-cyan-300 text-base font-600" id="buyerRefundPreview">${totalEscrow - (totalEscrow * defaultProviderPercent / 100)} GEN</span>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-400 block mb-1">Provider Earned Payout (${auditScore}%)</span>
+                <span class="text-emerald-300 text-base font-600" id="providerPayoutPreview">${(totalEscrow * defaultProviderPercent / 100)} GEN</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div class="flex items-center gap-2">
+                <input id="inpPercent" type="number" min="0" max="${isAccepted ? auditScore : 0}" value="${defaultProviderPercent}" ${isDisputed ? 'disabled' : ''} class="rounded-lg px-3 py-2 w-28 text-center font-600 text-cyan-300 ${isDisputed ? 'opacity-60' : ''}" />
+                <span class="text-xs text-slate-400 font-mono">% Share to Provider ${isAccepted ? `(capped at verified score: ${auditScore}%)` : ''}</span>
+              </div>
+              
+              <div class="flex items-center gap-2 sm:ml-auto">
+                 <button id="btnFinalize" ${!isBuyerConnected ? 'disabled' : ''} class="btn glow-green px-6 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-200 text-xs">
+                   Calculate &amp; Lock
+                 </button>
+                 <button id="btnForceFinalize" class="btn border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs px-4 py-2.5 rounded-xl" title="Resolves abandoned cases if deadline passed">
+                   Force Finalize
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      ${canSettle ? `
+        <div class="border-t border-slate-700/50 pt-5 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div class="text-xs text-slate-400 font-mono">Final Distributed Amount</div>
+            <div class="font-display text-2xl font-700 text-emerald-300">${state.settlementAmount} GEN</div>
+          </div>
+          <button id="btnSettle" class="btn glow-green px-6 py-3 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-100">
+            Release Escrow &amp; Settle Case
+          </button>
+        </div>
+      ` : ''}
+
+      ${state.caseState === "SETTLED" ? `
+        <div class="border-t border-slate-700/50 pt-5 flex items-center justify-between flex-wrap gap-3">
+          <div class="text-sm text-emerald-300 font-mono">✓ Case fully settled on-chain via token transfers.</div>
+          <button id="btnReset" class="btn px-5 py-2.5 rounded-xl bg-slate-700/40 border border-slate-600 text-slate-300 text-xs">Start New Case</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderHistoryTab() {
+  return `
+    <div class="glass rounded-2xl p-6 space-y-4 fade-up">
+      <div>
+        <h2 class="font-display text-lg font-600 mb-1">On-Chain Case History &amp; Audit Trail</h2>
+        <p class="text-sm text-slate-400">Review all active and past cases registered on the GenLayer Bradbury Testnet.</p>
+      </div>
+
+      <div class="space-y-3">
+        ${(!state.caseHistory || state.caseHistory.length === 0) ? `
+          <div class="text-slate-500 text-sm py-8 text-center font-mono">No cases recorded in session history yet.</div>
+        ` : state.caseHistory.map(c => `
+          <div class="glass p-4 rounded-xl border border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-mono text-cyan-300 font-600">${escapeHtml(c.caseId)}</span>
+                <span class="text-amber-200 text-xs font-bold">(${escapeHtml(c.title || 'Project')})</span>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">${escapeHtml(c.state)}</span>
+              </div>
+              <div class="font-mono text-xs text-slate-400">Escrow: <span class="text-amber-300">${c.escrow} GEN</span> | Provider: ${c.provider ? escapeHtml(c.provider.slice(0,6)+'...'+c.provider.slice(-4)) : '—'}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-mono text-slate-500">[${escapeHtml(c.time)}]</span>
+              <a href="https://explorer-studio.genlayer.com" target="_blank" class="btn px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs">
+                Explorer ↗
+              </a>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderTabContent(){
+  const el = document.getElementById("tabContent");
+  if(state.activeTab === "buyer") el.innerHTML = renderBuyerTab();
+  else if(state.activeTab === "provider") el.innerHTML = renderProviderTab();
+  else if(state.activeTab === "court") el.innerHTML = renderCourtTab();
+  else if(state.activeTab === "history") el.innerHTML = renderHistoryTab();
+  bindTabEvents();
+}
+
+function renderTabButtons(){
+  document.querySelectorAll(".tabBtnEl").forEach(btn => {
+    const t = btn.getAttribute("data-tab");
+    const active = t === state.activeTab;
+    btn.className = "tabBtnEl tab-btn flex-1 py-2.5 rounded-xl font-display text-sm font-600 " +
+      (active ? "bg-gradient-to-r from-cyan-500/20 to-violet-500/20 text-white border border-cyan-400/30"
+              : "text-slate-400 hover:text-slate-200 hover:bg-white/5");
+  });
+}
+
+function bindStaticEvents(){
+  document.querySelectorAll(".tabBtnEl").forEach(btn => {
+    btn.addEventListener("click", () => setTab(btn.getAttribute("data-tab")));
+  });
+}
+
+function bindTabEvents(){
+  const byId = id => document.getElementById(id);
+
+  if(state.activeTab === "buyer"){
+    byId("inpProjectTitle")?.addEventListener("input", e => { state.projectTitle = e.target.value; });
+    byId("inpProvider")?.addEventListener("input", e => { state.providerAddress = e.target.value; });
+
+    document.querySelectorAll("input[data-req-id]").forEach(chk => {
+      chk.addEventListener("change", e => {
+        const reqId = e.target.getAttribute("data-req-id");
+        if (e.target.checked) {
+          if (!state.selectedReqs.includes(reqId)) state.selectedReqs.push(reqId);
+        } else {
+          state.selectedReqs = state.selectedReqs.filter(id => id !== reqId);
+        }
+      });
+    });
+
+    byId("btnAddCustomRule")?.addEventListener("click", () => {
+      const val = byId("inpCustomRule")?.value.trim();
+      if (val) {
+        state.customReqs.push(val);
+        renderAll();
+        showToast("Custom rule added!");
+      }
+    });
+
+    document.querySelectorAll("button[data-del-custom]").forEach(btn => {
+      btn.addEventListener("click", e => {
+        const idx = Number(e.target.getAttribute("data-del-custom"));
+        state.customReqs.splice(idx, 1);
+        renderAll();
+        showToast("Custom rule removed.");
+      });
+    });
+
+    byId("btnCreateAndFund")?.addEventListener("click", createAndFundCase);
+    byId("btnConnectCase")?.addEventListener("click", connectToExistingCase);
+    byId("btnNewCase")?.addEventListener("click", resetCase);
+    byId("btnClaimRefund")?.addEventListener("click", claimRefund);
+  }
+
+  if(state.activeTab === "provider"){
+    byId("inpGithub")?.addEventListener("input", e => { state.evidence.githubUrl = e.target.value; });
+    byId("inpApiUrl")?.addEventListener("input", e => { state.evidence.apiUrl = e.target.value; });
+    byId("inpNotes")?.addEventListener("input", e => { state.evidence.notes = e.target.value; });
+    byId("btnSubmitDelivery")?.addEventListener("click", submitDelivery);
+  }
+
+  if(state.activeTab === "court"){
+    byId("btnAdjudicate")?.addEventListener("click", requestAdjudication);
+    
+    // V2 Appeal Binding
+    byId("inpAppealTarget")?.addEventListener("input", e => { state.appealTarget = e.target.value; });
+    byId("inpAppealUrl")?.addEventListener("input", e => { state.appealUrl = e.target.value; });
+    byId("inpAppealJustification")?.addEventListener("input", e => { state.appealJustification = e.target.value; });
+    byId("btnAppeal")?.addEventListener("click", raiseAppeal);
+
+    byId("inpPercent")?.addEventListener("input", e => {
+      const p = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+      const total = Number(state.escrowBalance) || 500;
+      const provAmt = (total * p) / 100;
+      const buyAmt = total - provAmt;
+
+      const provEl = document.getElementById("providerPayoutPreview");
+      const buyEl = document.getElementById("buyerRefundPreview");
+      if(provEl) provEl.textContent = provAmt + " GEN";
+      if(buyEl) buyEl.textContent = buyAmt + " GEN";
+    });
+
+    byId("btnFinalize")?.addEventListener("click", () => {
+      const p = byId("inpPercent").value;
+      finalizeSettlement(p);
+    });
+    
+    // V2 Force Finalize Binding
+    byId("btnForceFinalize")?.addEventListener("click", forceFinalize);
+    
+    byId("btnSettle")?.addEventListener("click", settleCase);
+    byId("btnReset")?.addEventListener("click", resetCase);
+  }
+}
+
+function renderAll(){
+  renderCaseSelectorBar();
+  renderStateStrip();
+  renderTabButtons();
+  renderTabContent();
+  renderScale();
+  renderCaseSummary();
+  renderLog();
+  updateWorkflowStepper();
+}
+
+bindStaticEvents();
+renderAll();
+</script>
+</body>
+</html>
